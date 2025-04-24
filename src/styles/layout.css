@@ -1,0 +1,40 @@
+.app {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  height: 100vh;
+}
+
+.data-viewport {
+  flex: 4;
+  overflow: auto;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+.data-viewport-column {
+  flex: 1;
+  overflow: auto;
+
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.data-viewport-column-container {
+  flex: 1;
+  overflow: auto;
+
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+
+  padding: 0.5rem;
+}
+
+.form-viewport {
+  flex: 1;
+  overflow: auto;
+}
