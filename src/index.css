@@ -4,31 +4,46 @@ body {
     source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-background);
+  background-color: var(--page-bg);
+}
+
+button,
+input,
+select {
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-primary);
 }
 
 p {
   margin: 0;
   padding: 0;
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   font-size: 1rem;
 }
 
 :root {
-  --color-surface: #ffffff;
-  --color-background: #f8f9fa;
-  --color-surface-secondary: #f8f9fa;
-  --color-footer-background: #e9ecef;
+  --page-bg: #f8f9fa;
 
-  --color-text-primary: #212529;
+  --white: #ffffff;
+  --off-white: #f8f9fa;
+  --grey-light: #dee2e6;
+  --grey-dark: #343a40;
+
+  --item-hover: #c7cbcf;
+
+  --text-primary: #212529;
   --color-text-secondary: #6c757d;
 
-  --color-accent-blue: #0a58ca;
-  --color-accent-green: #146c43;
-  --color-accent-red: #b02a37;
-  --color-accent-orange: #d97706;
+  --color-accent-blue: #cce4f6;
+  --color-accent-green: #c8e6cb;
+  --color-accent-red: #f8d7da;
+  --color-accent-orange: #fdeac3;
 
-  --color-link-hover: #08449e;
-  --color-button-disabled-bg: #e9ecef;
-  --color-button-disabled-text: #6c757d;
+  --disabled-bg: #e9ecef;
+  --disabled-color: #6c757d;
+  --active-bg: #b6babd;
+  --color-active: #40464b;
 }

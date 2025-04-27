@@ -12,6 +12,8 @@
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  padding: 0.5rem;
+  gap: 0.5rem;
 }
 
 .data-viewport-column {
@@ -21,6 +23,7 @@
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
+  gap: 0.5rem;
 }
 
 .data-viewport-column-container {
@@ -30,8 +33,6 @@
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
-
-  padding: 0.5rem;
 }
 
 .form-viewport {

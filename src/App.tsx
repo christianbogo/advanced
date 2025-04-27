@@ -1,3 +1,4 @@
+import Meets from './window/meets/Meets';
 import './styles/layout.css';
 
 function App() {
@@ -6,29 +7,26 @@ function App() {
       <div className="data-viewport">
         <div className="data-viewport-column">
           <div className="data-viewport-column-container">
-            <p>test 1</p>
+            <Meets />
           </div>
           <div className="data-viewport-column-container">
-            <p>test 2</p>
+            <Meets />
           </div>
           <div className="data-viewport-column-container">
-            <p>test 3</p>
-          </div>
-        </div>
-        <div className="data-viewport-column">
-          <div className="data-viewport-column-container">
-            <p>test 4</p>
-          </div>
-          <div className="data-viewport-column-container">
-            <p>test 5</p>
+            <Meets />
           </div>
         </div>
         <div className="data-viewport-column">
           <div className="data-viewport-column-container">
-            <p>test 6</p>
+            <Meets />
           </div>
           <div className="data-viewport-column-container">
-            <p>test 7</p>
+            <Meets />
+          </div>
+        </div>
+        <div className="data-viewport-column">
+          <div className="data-viewport-column-container">
+            <Meets />
           </div>
         </div>
       </div>
