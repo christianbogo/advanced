@@ -7,10 +7,10 @@ function Meets() {
         <p>Meets (15)</p>
         <div className="buttons">
           <button disabled>Add</button>
-          <button className="active">Hide</button>
-          <button>Deselect</button>
+          <button>Search</button>
         </div>
       </div>
+      {/* <input className="search" type="text" placeholder="Search" /> */}
       <div className="options">
         <select>
           <option>TeamCode ShortName</option>
@@ -18,17 +18,20 @@ function Meets() {
           <option>TeamCode LongName</option>
         </select>
         <select>
-          <option>Athletes</option>
-          <option>Seasons</option>
-          <option>Meets</option>
+          <option>Date</option>
+          <option>Type</option>
+          <option>Date Type</option>
+          <option>Location</option>
+          <option>Results Count</option>
+          <option>Season</option>
         </select>
       </div>
       <div className="list">
-        <div className="item super selected">
+        <div className="item selected">
           <p className="count">1</p>
           <p className="code">VM</p>
-          <p className="name">Velocity Masters</p>
-          <p className="end">22</p>
+          <p className="name">Velocity Winter</p>
+          <p className="end">3/12/25</p>
         </div>
         <div className="item selected">
           <p className="count">2</p>

@@ -26,6 +26,10 @@
   gap: 0.5rem;
 }
 
+.data-viewport-column.second > :first-child {
+  flex: 1.3;
+}
+
 .data-viewport-column-container {
   flex: 1;
   overflow: auto;
@@ -37,5 +41,13 @@
 
 .form-viewport {
   flex: 1;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.form-options {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
 }

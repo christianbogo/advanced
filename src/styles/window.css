@@ -75,6 +75,20 @@
   cursor: pointer;
 }
 
+.window .search {
+  border: 1px solid var(--grey-light);
+  background-color: var(--white);
+  padding: 5px 10px;
+  color: var(--text-primary);
+  border-radius: 0;
+  margin-bottom: 5px;
+}
+
+.window .search:active,
+.window .search:focus {
+  outline: none;
+}
+
 .window .list {
   display: flex;
   flex-direction: column;

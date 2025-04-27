@@ -1,0 +1,223 @@
+.form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 5px;
+  border-left: 2px solid var(--grey-light);
+  overflow: auto;
+}
+
+.form-options .header {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: start;
+  align-items: start;
+  border-bottom: 1px solid var(--grey-light);
+}
+
+.form-options .search {
+  width: 100%;
+  border: none;
+  background-color: var(--white);
+  padding: 5px 10px;
+  color: var(--text-primary);
+}
+
+.form-options .search:active,
+.form-options .search:focus {
+  outline: none;
+}
+
+.form-options button {
+  color: var(--text-primary);
+  background-color: var(--grey-light);
+  border: 1px solid var(--grey-light);
+  padding: 5px 10px;
+}
+
+.form-options button:hover:not(:disabled) {
+  background-color: var(--white);
+  cursor: pointer;
+}
+
+.form-options .options {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  max-height: calc(100vh - 1rem);
+}
+
+.form-options .option {
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.form-options .option:hover {
+  background-color: var(--color-accent-blue); /* Light blue hover effect */
+}
+
+.form-options .option:active {
+  transform: scale(0.98); /* Subtle press effect */
+}
+
+.form-options .option.selected {
+  background-color: var(
+    --color-accent-green
+  ); /* Distinct background for selected item */
+  border-color: #0056b3;
+  font-weight: bold;
+}
+
+/* Styling for title and subtitle within each item */
+.form-options .option .title {
+  margin-bottom: 0.5rem;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.form-options .option .subtitle {
+  color: var(--text-secondary);
+}
+
+/* Import variables if not globally available (depends on build setup) */
+/* @import url('./index.css'); */ /* Uncomment if needed */
+
+.form form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* Space between sections */
+}
+
+.form section > p {
+  display: flex; /* Use flexbox for the line effect */
+  align-items: center; /* Vertically center text with lines */
+  text-align: center;
+  color: var(--text-secondary); /* Use secondary text color */
+  font-size: 0.8rem; /* Slightly smaller than default p */
+  margin-bottom: 0.5rem; /* Space below the section title/divider */
+  text-transform: uppercase; /* Optional: make titles uppercase */
+  letter-spacing: 1px; /* Optional: slight letter spacing */
+}
+
+/* The lines before and after the section title text */
+.form section > p::before,
+.form section > p::after {
+  content: '';
+  flex-grow: 1; /* Allow lines to grow and fill space */
+  height: 1px; /* Line thickness */
+  background-color: var(--grey-light); /* Use light grey border color */
+  margin: 0; /* Space between line and text */
+}
+
+/* Container for label + input pairs */
+.form .field {
+  display: flex;
+  flex-direction: column; /* Stack label above input */
+  margin-bottom: 0.5rem; /* Space between fields */
+}
+
+/* Label styling */
+.form .field label {
+  font-size: 0.75rem; /* Smaller font size as requested */
+  color: var(--text-secondary); /* Use secondary text color */
+  text-align: left; /* Align label text left */
+  transform: translate(0.5rem, 0.4rem);
+  background-color: var(--page-bg);
+  border: 1px solid var(--grey-light);
+  width: min-content;
+  text-wrap: nowrap;
+  padding: 0 0.5rem;
+}
+
+/* Input field styling */
+.form .field input[type='text'],
+.form .field input[type='email'],
+.form .field input[type='password'],
+.form .field input[type='number'],
+.form .field select {
+  width: 100%; /* Make input fill container width */
+  padding: 8px 10px; /* Comfortable padding */
+  border: 1px solid var(--grey-light); /* Consistent border */
+  background-color: transparent;
+  font-size: 0.9rem; /* Slightly smaller font for inputs */
+  box-sizing: border-box; /* Include padding/border in width */
+  font-family: inherit; /* Use the form's font */
+  color: var(--text-primary); /* Primary text color */
+}
+
+/* Input field focus state */
+.form .field input[type='text']:focus,
+.form .field input[type='email']:focus,
+.form .field input[type='password']:focus,
+.form .field input[type='number']:focus,
+.form .field textarea:focus,
+.form .field select:focus {
+  outline: none; /* Remove default outline */
+  border-color: var(--grey-dark); /* Darker border on focus, adjust as needed */
+  /* Optional: Add a subtle box-shadow for focus */
+  /* box-shadow: 0 0 0 2px rgba(52, 58, 64, 0.1); */
+}
+
+/* Styling for buttons within fields (like your 'Select Person' button) */
+.form .field button {
+  width: 100%;
+  padding: 8px 10px;
+  background-color: transparent; /* Match button style from window.css */
+  border: 1px solid var(--grey-light); /* Match button style from window.css */
+  color: var(--text-primary); /* Match button style from window.css */
+  font-size: 0.9rem;
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.form .field button:hover:not(:disabled) {
+  background-color: var(--white); /* Match hover from window.css */
+}
+
+/* Container for action buttons at the bottom */
+.form .buttons {
+  display: flex;
+  flex-direction: row; /* Align buttons horizontally */
+  justify-content: stretch; /* Align buttons to the right */
+  gap: 0.5rem; /* Space between buttons */
+}
+
+/* Styling for action buttons */
+.form .buttons button {
+  flex: 1;
+  padding: 8px 15px; /* Slightly more horizontal padding for action buttons */
+  background-color: transparent; /* Consistent button style */
+  border: 1px solid var(--grey-light); /* Consistent button style */
+  color: var(--text-primary); /* Consistent button style */
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
+  border-radius: 3px; /* Optional: slight rounding */
+}
+
+.form .buttons button:hover:not(:disabled) {
+  background-color: var(--white); /* Consistent hover style */
+}
+
+/* Optional: Style for specific buttons like 'Delete' */
+/* .form .buttons button.delete { */
+/* background-color: var(--color-accent-red); */ /* Example using accent color */
+/* border-color: var(--color-accent-red); */
+/* color: var(--text-primary); */
+/* } */
+
+/* .form .buttons button.delete:hover:not(:disabled) { */
+/* background-color: #f1c1c5; */ /* Lighter red on hover */
+/* border-color: #f1c1c5; */
+/* } */
