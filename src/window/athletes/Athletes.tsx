@@ -24,13 +24,13 @@ function Athletes() {
         </select>
       </div>
       <div className="list">
-        <div className="item selected">
+        <div className="item">
           <p className="count">1</p>
           <p className="code">21M</p>
           <p className="name">Christian Cutter</p>
           <p className="end">SR</p>
         </div>
-        <div className="item selected">
+        <div className="item">
           <p className="count">2</p>
           <p className="code">24F</p>
           <p className="name">David Navarro</p>
