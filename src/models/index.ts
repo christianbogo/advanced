@@ -17,14 +17,17 @@ export interface Person {
 
 export interface Athlete {
   id: string;
+  person: string; // references personId
   team: string; // references teamId
   season: string; // references seasonId
-  person: string; // references personId
 
   grade: string | null;
   group: string | null;
   subgroup: string | null;
   lane: string | null;
+
+  contactsCount?: number; // Count of contacts for the athlete
+  resultsCount?: number; // Count of results for the athlete
 
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
@@ -41,16 +44,21 @@ export interface Contact {
 
 export interface Team {
   id: string;
-  type: string;
+  type: string; // 'Club' | 'Masters' | 'High School' | 'Middle School'
 
   code: string;
   nameShort: string;
   nameLong: string;
 
-  currentSeason?: string;
-
   location: string;
   address: string;
+
+  seasonCount?: number;
+  latestSeasonId?: string; // Store ID of the latest season
+  latestSeasonYear?: string; // Store name of the latest season
+  latestSeasonAthletesCount?: number; // Count of athletes in the *latest* season
+  meetCount?: number;
+  resultsCount?: number;
 
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
@@ -59,25 +67,31 @@ export interface Team {
 export interface Season {
   id: string;
   team: string; // references teamId
+  year: string; // 'YYYY' | 'YYYY-YYYY' (for multi-year seasons)
   nameLong: string;
   nameShort: string;
 
   startDate: string;
   endDate: string;
 
-  isComplete: boolean;
+  dataComplete: boolean;
+
+  meetCount?: number;
+  athletesCount?: number; // Count of athletes in the *latest* season
+  resultsCount?: number;
+
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
 
 export interface Meet {
   id: string;
-  nameLong: string;
   nameShort: string;
-  date: string; // 'YYYY-MM-DD'
+  nameLong: string;
 
-  locationName: string;
-  locationAddress: string; // Address as string
+  date: string; // 'YYYY-MM-DD'
+  location: string;
+  address: string;
 
   team: string; // references teamId
   season: string; // references seasonId
@@ -86,7 +100,12 @@ export interface Meet {
   official: boolean; // true if the meet is official
   benchmarks: boolean; // true if the meet is a benchmark setting meet
 
-  isComplete: boolean;
+  dataComplete: boolean;
+
+  eventsCount?: number; // Count of events in the meet
+  athletesCount?: number; // Count of athletes in the meet
+  resultsCount?: number; // Count of results in the meet
+
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -94,48 +113,48 @@ export interface Meet {
 export interface Event {
   id: string;
   code: string;
-  nameLong: string;
   nameShort: string;
+  nameLong: string;
+
   course: string;
   distance: number;
   stroke: string;
+
   hs: boolean; // high school event
   ms: boolean; // middle school event
   U14: boolean; // club under 14 event
   O15: boolean; // club over 15 event
-}
 
-export interface IndividualResult {
-  id: string;
-
-  meet: string; // references meetId
-  event: string; // references eventId
-  athlete: string; // references athleteId
-
-  team: string; // references teamId determined by the athlete's team
-  season: string; // references seasonId determined by the athlete's season
-  age: number; // calculated by determining the athlete's age at the time of the meet
-
-  result: number;
-  dq: boolean;
+  resultCount?: number; // Count of results in the event
 
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
 
-export interface RelayResult {
+export interface Result {
   id: string;
-
-  meet: string; // references meetId
-  event: string; // references eventId
-
-  athletes: string[]; // references athleteId
 
   team: string; // references teamId determined by the athlete's team
   season: string; // references seasonId determined by the athlete's season
+  meet: string; // references meetId
+  event: string; // references eventId
+  athletes: string[]; // references athleteId
 
+  ages: number[]; // calculated by determining the athlete's age at the time of the meet
   result: number;
   dq: boolean;
+  official: boolean; // true if the meet is official
+  benchmarks: boolean; // true if the meet is a benchmark setting meet
+
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface Imports {
+  id: string;
+  person: string; // references personId
+  event: string; // references eventId
+  result: number;
 
   createdAt?: Timestamp;
   updatedAt?: Timestamp;

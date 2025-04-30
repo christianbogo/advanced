@@ -2,22 +2,23 @@ import React, { useState, useMemo } from 'react';
 import { useTeams } from './useTeams'; // Adjust path as needed
 import { useFilterContext } from '../../filter/FilterContext'; // Adjust path as needed
 import { Team } from '../../models/index'; // Adjust path as needed
-// Removed CSS Module import - assuming window.css is loaded globally
+// Assuming window.css is loaded globally or imported elsewhere
 
-// Define types for dropdown options for better type safety
-type NameDisplayType = 'codeShort' | 'codeLong' | 'longOnly';
+// --- Configuration Types ---
+type NameDisplayType = 'codeOnly' | 'codeShort' | 'codeLong';
 type EndColumnDataType =
+  | 'none'
   | 'seasonsCount'
   | 'meetsCount'
   | 'athletesCount'
   | 'resultsCount'
-  | 'currentSeason'
-  | 'none';
+  | 'latestSeason';
 
 function TeamsWindow() {
   // --- State for UI Controls ---
   const [nameDisplay, setNameDisplay] = useState<NameDisplayType>('codeShort');
-  const [endColumnData, setEndColumnData] = useState<EndColumnDataType>('none');
+  const [endColumnData, setEndColumnData] =
+    useState<EndColumnDataType>('seasonsCount');
 
   // --- Data Fetching ---
   const { data: teams, isLoading, isError, error } = useTeams();
@@ -28,6 +29,7 @@ function TeamsWindow() {
   const superSelectedTeamIds = filterState.superSelected.team;
 
   // --- Derived State for Visual Filtering ---
+  // Check if *any* team is selected or super-selected globally
   const hasAnyTeamSelected = useMemo(
     () => selectedTeamIds.length > 0,
     [selectedTeamIds]
@@ -35,6 +37,11 @@ function TeamsWindow() {
   const hasAnyTeamSuperSelected = useMemo(
     () => superSelectedTeamIds.length > 0,
     [superSelectedTeamIds]
+  );
+  // Combine checks: Is there *any* form of selection active?
+  const isAnySelectionActive = useMemo(
+    () => hasAnyTeamSelected || hasAnyTeamSuperSelected,
+    [hasAnyTeamSelected, hasAnyTeamSuperSelected]
   );
 
   // --- Event Handlers ---
@@ -53,42 +60,38 @@ function TeamsWindow() {
   // --- Rendering Logic ---
   const renderTeamName = (team: Team): string => {
     switch (nameDisplay) {
+      case 'codeOnly':
+        return '';
       case 'codeLong':
-        return `${team.code} ${team.nameLong}`;
-      case 'longOnly':
         return team.nameLong;
       case 'codeShort':
       default:
-        return `${team.code} ${team.nameShort}`;
+        return team.nameShort;
     }
   };
 
-  // Placeholder function for end column data - replace with real data later
   const renderEndColumn = (team: Team): string | number => {
     switch (endColumnData) {
       case 'seasonsCount':
-        return 'N/A'; // Replace with actual count later
+        return 'N/A (Seasons)'; // Placeholder
       case 'meetsCount':
-        return 'N/A'; // Replace with actual count later
+        return 'N/A (Meets)'; // Placeholder
       case 'athletesCount':
-        return 'N/A'; // Replace with actual count later
+        return 'N/A (Athletes)'; // Placeholder (Latest Season)
       case 'resultsCount':
-        return 'N/A'; // Replace with actual count later
-      case 'currentSeason':
-        // Attempt to display a shorter version if currentSeason is a long ID, otherwise show N/A
-        return team.currentSeason
-          ? `...${team.currentSeason.slice(-6)}`
-          : 'N/A';
+        return 'N/A (Results)'; // Placeholder
+      case 'latestSeason':
+        return 'N/A (Latest Season)'; // Placeholder (Name Short)
       case 'none':
       default:
-        return ''; // Return empty string
+        return '';
     }
   };
 
   // --- Main Render ---
   return (
-    // Use class names directly from window.css
     <div className="window">
+      {/* Header Row */}
       <div className="row">
         <p>Teams ({teams?.length ?? 0})</p>
         <div className="buttons">
@@ -96,68 +99,73 @@ function TeamsWindow() {
         </div>
       </div>
 
+      {/* Options Row (Dropdowns) */}
       <div className="options">
         <select value={nameDisplay} onChange={handleNameDisplayChange}>
           <option value="codeShort">Code + Short Name</option>
           <option value="codeLong">Code + Long Name</option>
-          <option value="longOnly">Long Name Only</option>
+          <option value="codeOnly">Code Only</option>
         </select>
         <select value={endColumnData} onChange={handleEndColumnChange}>
-          <option value="none">-- Select Column --</option>
+          <option value="none">-- Additional Info --</option>
           <option value="seasonsCount">Seasons Count</option>
           <option value="meetsCount">Meets Count</option>
-          <option value="athletesCount">Athletes Count</option>
+          <option value="athletesCount">Athletes Count (Latest Season)</option>
           <option value="resultsCount">Results Count</option>
-          <option value="currentSeason">Current Season</option>
+          <option value="latestSeason">Latest Season Name</option>
         </select>
       </div>
 
+      {/* Data List */}
       <div className="list">
-        {/* Loading State - using a simple div, add styling to window.css if needed */}
+        {/* Loading State */}
         {isLoading && <div className="loading-message">Loading teams...</div>}
 
-        {/* Error State - using a simple div, add styling to window.css if needed */}
+        {/* Error State */}
         {isError && (
           <div className="error-message">
             Error loading teams: {error?.message}
           </div>
         )}
 
-        {/* Team List */}
+        {/* Team List Items */}
         {!isLoading &&
           !isError &&
           teams?.map((team: Team, index: number) => {
+            // Determine the selection state for *this specific team*
             const isSelected: boolean = selectedTeamIds.includes(team.id);
             const isSuperSelected: boolean = superSelectedTeamIds.includes(
               team.id
             );
 
-            // Determine visual state based on global selections
-            let itemClasses: string[] = ['item']; // Start with base class
-            let itemStyle: React.CSSProperties = {}; // For inline styles if needed
+            // --- Refined Class Logic ---
+            // Start with the base class
+            let itemClasses: string[] = ['item'];
 
             if (isSuperSelected) {
-              itemClasses.push('super'); // Add .super class
-              itemClasses.push('selected'); // Add .selected class (as defined in window.css for super)
+              // If this team is super-selected, add 'super' and 'selected'
+              // (window.css targets .item.super.selected)
+              itemClasses.push('super', 'selected');
             } else if (isSelected) {
-              itemClasses.push('selected'); // Add .selected class
+              // If this team is selected (but not super-selected), add 'selected'
+              itemClasses.push('selected');
+            } else if (isAnySelectionActive) {
+              // If this team is *not* selected/super-selected,
+              // BUT *some other* team *is* selected or super-selected,
+              // then fade this one out using the 'faded' class.
+              itemClasses.push('faded');
             }
+            // If no teams are selected or super-selected at all,
+            // items that are not selected/super-selected will just have the base 'item' class.
 
-            // Apply fade or hide based on global state
-            if (hasAnyTeamSuperSelected && !isSuperSelected) {
-              // If any team is superSelected, hide items that are NOT superSelected
-              // NOTE: Using inline style as '.hide' class is not in provided window.css
-              itemStyle.display = 'none';
-            } else if (hasAnyTeamSelected && !isSelected && !isSuperSelected) {
-              // If any team is selected (but none superSelected), fade items that are not selected
-              itemClasses.push('faded'); // Add .faded class
-            }
+            // --- Removed Inline Style ---
+            // We no longer apply display: 'none' here.
 
             return (
               <div
                 key={team.id}
-                className={itemClasses.join(' ')} // Join all applicable classes
-                style={itemStyle} // Apply inline styles (for hide)
+                className={itemClasses.join(' ')} // Apply classes based on the logic above
+                // style={itemStyle} // REMOVED: No longer using inline styles for hiding
                 onClick={() => toggleSelection('team', team.id)}
                 role="button"
                 tabIndex={0}
@@ -166,7 +174,6 @@ function TeamsWindow() {
                     toggleSelection('team', team.id);
                 }}
               >
-                {/* Structure matching window.css expectations */}
                 <p className="count">{index + 1}</p>
                 <p className="code">{team.code}</p>
                 <p className="name">{renderTeamName(team)}</p>
@@ -175,9 +182,11 @@ function TeamsWindow() {
             );
           })}
 
-        {/* Empty State - using a simple div, add styling to window.css if needed */}
+        {/* Empty State */}
         {!isLoading && !isError && teams?.length === 0 && (
-          <div className="empty-message">No teams found.</div>
+          <div className="empty-message">
+            No teams found. Add a team to get started.
+          </div>
         )}
       </div>
     </div>

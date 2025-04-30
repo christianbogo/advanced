@@ -40,6 +40,10 @@
   outline: none;
 }
 
+.window .options > :nth-child(2) {
+  text-align: right;
+}
+
 .window .row .buttons {
   display: flex;
   flex-direction: row;
