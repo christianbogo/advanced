@@ -101,7 +101,7 @@ function App() {
       <div className="data-viewport">
         <div className="data-viewport-column first">
           <div className="data-viewport-column-container">
-            <Teams />
+            {/* <Teams /> */}
           </div>
           <div className="data-viewport-column-container">
             <Seasons />

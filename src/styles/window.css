@@ -94,8 +94,7 @@
   flex-direction: column;
   flex-wrap: nowrap;
   justify-content: start;
-  align-items: stretch;
-  overflow: scroll;
+  overflow: auto;
 }
 
 .window .item {
