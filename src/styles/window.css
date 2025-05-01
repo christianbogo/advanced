@@ -145,6 +145,7 @@
 .window .item .code {
   font-weight: bold;
   min-width: 3rem;
+  text-transform: uppercase;
 }
 
 .window .item .name {

@@ -55,8 +55,6 @@ export interface Team {
 
   seasonCount?: number;
   latestSeasonId?: string; // Store ID of the latest season
-  latestSeasonYear?: string; // Store name of the latest season
-  latestSeasonAthletesCount?: number; // Count of athletes in the *latest* season
   meetCount?: number;
   resultsCount?: number;
 
@@ -67,9 +65,8 @@ export interface Team {
 export interface Season {
   id: string;
   team: string; // references teamId
+  season: string; // 'Spring' | 'Summer' | 'Fall' | 'Winter'
   year: string; // 'YYYY' | 'YYYY-YYYY' (for multi-year seasons)
-  nameLong: string;
-  nameShort: string;
 
   startDate: string;
   endDate: string;

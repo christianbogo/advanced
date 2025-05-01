@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import { FilterProvider } from './filter/FilterContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { FormProvider } from './form/FormContext';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -15,7 +16,9 @@ root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <FilterProvider>
-        <App />
+        <FormProvider>
+          <App />
+        </FormProvider>
       </FilterProvider>
     </QueryClientProvider>
   </React.StrictMode>

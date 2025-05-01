@@ -1,3 +1,6 @@
+/* src/styles/form.css */
+
+/* --- Existing styles --- */
 .form {
   flex: 1;
   display: flex;
@@ -6,6 +9,25 @@
   padding: 5px;
   border-left: 2px solid var(--grey-light);
   overflow: auto;
+}
+
+.form .form-timestamps {
+  flex: 1;
+  padding-top: 1rem;
+  border-top: 1px solid var(--grey-light); /* Optional divider line */
+  text-align: center; /* Center the timestamp text */
+}
+
+.form .form-timestamps p {
+  font-size: 0.6rem; /* Smaller font size */
+  color: var(--text-secondary); /* Muted text color */
+  line-height: 1.3; /* Adjust line height for readability */
+}
+
+.form-message {
+  padding: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .form-options .header {
@@ -76,7 +98,6 @@
   font-weight: bold;
 }
 
-/* Styling for title and subtitle within each item */
 .form-options .option .title {
   margin-bottom: 0.5rem;
   font-size: 1.5em;
@@ -87,9 +108,6 @@
   color: var(--text-secondary);
 }
 
-/* Import variables if not globally available (depends on build setup) */
-/* @import url('./index.css'); */ /* Uncomment if needed */
-
 .form form {
   display: flex;
   flex-direction: column;
@@ -97,82 +115,87 @@
 }
 
 .form section > p {
-  display: flex; /* Use flexbox for the line effect */
-  align-items: center; /* Vertically center text with lines */
+  display: flex;
+  align-items: center;
   text-align: center;
-  color: var(--text-secondary); /* Use secondary text color */
-  font-size: 0.8rem; /* Slightly smaller than default p */
-  margin-bottom: 0.5rem; /* Space below the section title/divider */
-  text-transform: uppercase; /* Optional: make titles uppercase */
-  letter-spacing: 1px; /* Optional: slight letter spacing */
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-/* The lines before and after the section title text */
 .form section > p::before,
 .form section > p::after {
   content: '';
-  flex-grow: 1; /* Allow lines to grow and fill space */
-  height: 1px; /* Line thickness */
-  background-color: var(--grey-light); /* Use light grey border color */
-  margin: 0; /* Space between line and text */
+  flex-grow: 1;
+  height: 1px;
+  background-color: var(--grey-light);
+  margin: 0 0.5em; /* Add some space between line and text */
 }
 
-/* Container for label + input pairs */
 .form .field {
   display: flex;
-  flex-direction: column; /* Stack label above input */
-  margin-bottom: 0.5rem; /* Space between fields */
+  flex-direction: column;
+  margin-bottom: 0.5rem;
 }
 
-/* Label styling */
 .form .field label {
-  font-size: 0.75rem; /* Smaller font size as requested */
-  color: var(--text-secondary); /* Use secondary text color */
-  text-align: left; /* Align label text left */
-  transform: translate(0.5rem, 0.4rem);
-  background-color: var(--page-bg);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: left;
+  /* Position the label to overlap the top border */
+  transform: translate(
+    0.5rem,
+    0.45rem
+  ); /* Adjust vertical positioning slightly */
+  /* Give label a background matching the form's background */
+  background-color: var(
+    --page-bg,
+    white
+  ); /* Use page background variable or default to white */
   border: 1px solid var(--grey-light);
-  width: min-content;
+  width: min-content; /* Fit the content */
   text-wrap: nowrap;
   padding: 0 0.5rem;
+  z-index: 1; /* Ensure label is above the input border */
+  position: relative; /* Needed for z-index */
 }
 
-/* Input field styling */
 .form .field input[type='text'],
 .form .field input[type='email'],
 .form .field input[type='password'],
 .form .field input[type='number'],
+.form .field input[type='date'], /* Added date input */
 .form .field select {
-  width: 100%; /* Make input fill container width */
-  padding: 8px 10px; /* Comfortable padding */
-  border: 1px solid var(--grey-light); /* Consistent border */
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--grey-light);
   background-color: transparent;
-  font-size: 0.9rem; /* Slightly smaller font for inputs */
-  box-sizing: border-box; /* Include padding/border in width */
-  font-family: inherit; /* Use the form's font */
-  color: var(--text-primary); /* Primary text color */
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  font-family: inherit;
+  color: var(--text-primary);
+  /* Add top padding to push text below the overlapping label */
+  padding-top: 12px; /* Adjust as needed */
 }
 
-/* Input field focus state */
 .form .field input[type='text']:focus,
 .form .field input[type='email']:focus,
 .form .field input[type='password']:focus,
 .form .field input[type='number']:focus,
-.form .field textarea:focus,
+.form .field input[type='date']:focus, /* Added date input */
 .form .field select:focus {
-  outline: none; /* Remove default outline */
-  border-color: var(--grey-dark); /* Darker border on focus, adjust as needed */
-  /* Optional: Add a subtle box-shadow for focus */
-  /* box-shadow: 0 0 0 2px rgba(52, 58, 64, 0.1); */
+  outline: none;
+  border-color: var(--grey-dark);
 }
 
-/* Styling for buttons within fields (like your 'Select Person' button) */
 .form .field button {
   width: 100%;
   padding: 8px 10px;
-  background-color: transparent; /* Match button style from window.css */
-  border: 1px solid var(--grey-light); /* Match button style from window.css */
-  color: var(--text-primary); /* Match button style from window.css */
+  background-color: transparent;
+  border: 1px solid var(--grey-light);
+  color: var(--text-primary);
   font-size: 0.9rem;
   text-align: center;
   cursor: pointer;
@@ -181,43 +204,50 @@
 }
 
 .form .field button:hover:not(:disabled) {
-  background-color: var(--white); /* Match hover from window.css */
+  background-color: var(--white);
+}
+
+/* --- NEW/MODIFIED STYLES for Disabled Select --- */
+.form .field select:disabled {
+  opacity: 1; /* Override browser default transparency */
+  /* Use a background color to indicate disabled state instead of opacity */
+
+  cursor: not-allowed; /* Indicate non-interactive state */
+  /* Optional: Slightly different border if desired */
+  /* border-color: var(--grey-lighter, #dee2e6); */
+}
+
+/* Ensure the label background still works with the disabled select background */
+.form .field label {
+  /* Make sure this background matches the actual form background */
+  background-color: var(--page-bg, white);
 }
 
 /* Container for action buttons at the bottom */
 .form .buttons {
   display: flex;
-  flex-direction: row; /* Align buttons horizontally */
-  justify-content: stretch; /* Align buttons to the right */
-  gap: 0.5rem; /* Space between buttons */
+  flex-direction: row;
+  justify-content: stretch;
+  gap: 0.5rem;
 }
 
 /* Styling for action buttons */
 .form .buttons button {
   flex: 1;
-  padding: 8px 15px; /* Slightly more horizontal padding for action buttons */
-  background-color: transparent; /* Consistent button style */
-  border: 1px solid var(--grey-light); /* Consistent button style */
-  color: var(--text-primary); /* Consistent button style */
+  padding: 8px 15px;
+  background-color: transparent;
+  border: 1px solid var(--grey-light);
+  color: var(--text-primary);
   font-size: 0.9rem;
   cursor: pointer;
   font-family: inherit;
   transition: background-color 0.2s ease;
-  border-radius: 3px; /* Optional: slight rounding */
+  border-radius: 3px;
 }
 
 .form .buttons button:hover:not(:disabled) {
-  background-color: var(--white); /* Consistent hover style */
+  background-color: var(--white);
 }
 
 /* Optional: Style for specific buttons like 'Delete' */
-/* .form .buttons button.delete { */
-/* background-color: var(--color-accent-red); */ /* Example using accent color */
-/* border-color: var(--color-accent-red); */
-/* color: var(--text-primary); */
-/* } */
-
-/* .form .buttons button.delete:hover:not(:disabled) { */
-/* background-color: #f1c1c5; */ /* Lighter red on hover */
-/* border-color: #f1c1c5; */
-/* } */
+/* ... */
