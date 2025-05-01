@@ -18,10 +18,6 @@
   margin-bottom: 5px;
 }
 
-.window .row:focus {
-  outline: none;
-}
-
 .window .row > :first-child {
   flex: 1;
 }
@@ -114,6 +110,11 @@
   gap: 5px;
   padding: 5px;
   overflow: ellipsis;
+}
+
+.window .item:focus,
+.window .item:focus-visible {
+  outline: none;
 }
 
 .window .item.super.selected {

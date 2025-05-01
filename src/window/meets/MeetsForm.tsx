@@ -61,7 +61,17 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
   // Data fetching hooks
   const { data: teams, isLoading: isLoadingTeams } = useTeams();
   const { data: allSeasons, isLoading: isLoadingSeasons } = useSeasons();
-  const { data: allEvents, isLoading: isLoadingEvents } = useEvents(); // Fetch events
+  const {
+    data: allEvents,
+    isLoading: isLoadingEvents,
+    error: eventsError,
+  } = useEvents(); // Fetch events
+  console.log('[MeetsForm Debug] Events Hook:', {
+    isLoadingEvents,
+    eventsError,
+    eventCount: allEvents?.length,
+    allEvents,
+  });
 
   // Local state for the event order section
   const [selectedEventToAdd, setSelectedEventToAdd] = useState<string>('');
@@ -369,9 +379,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
             >
               <option value="" disabled>
                 {' '}
-                {isLoadingEvents
-                  ? 'Loading Events...'
-                  : '-- Select Event to Add --'}{' '}
+                {isLoadingEvents ? 'Loading...' : 'Select Event'}{' '}
               </option>
               {allEvents?.map((event: Event) => (
                 <option
@@ -379,7 +387,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
                   value={event.id}
                   disabled={currentEventOrder.includes(event.id)}
                 >
-                  {`${event.nameShort} (${event.distance}${event.course.charAt(0)} ${event.stroke})`}
+                  {`${event.distance} ${event.course} ${event.stroke}`}
                 </option>
               ))}
             </select>
@@ -412,7 +420,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
                   <span className="event-order-number">{index + 1}.</span>
                   <span className="details">
                     {event
-                      ? `${event.nameShort} (${event.distance}${event.course.charAt(0)} ${event.stroke})`
+                      ? `${event.distance} ${event.course} ${event.stroke}`
                       : `Unknown Event (ID: ${eventId})`}
                   </span>
                   <span className="controls">
