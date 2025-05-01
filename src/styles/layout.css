@@ -32,7 +32,7 @@
 
 .data-viewport-column-container {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
 
   display: flex;
   flex-direction: column;

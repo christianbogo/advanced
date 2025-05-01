@@ -1,11 +1,10 @@
-// src/window/seasons/Seasons.tsx
+// src/window/seasons/SeasonsWindow.tsx
 
 import React, { useState, useMemo } from 'react';
 import { useSeasons, SeasonWithTeamInfo } from './useSeasons';
 import { useFilterContext } from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
 import { dateDisplay } from '../../utils/display';
-// Assuming window.css is loaded globally or imported elsewhere
 
 // Configuration Types for SeasonsWindow
 type SeasonNameDisplayType = 'teamCodeSeasonYear' | 'teamNameSeasonYear';
@@ -29,10 +28,10 @@ function SeasonsWindow() {
   // Context Hooks
   const {
     state: filterState,
-    toggleSelection,
+    toggleSelection, // Used for normal click/enter/space
     clearAllByType,
   } = useFilterContext();
-  const { selectItemForForm } = useFormContext();
+  const { selectItemForForm } = useFormContext(); // Used for shift+click/enter/space
 
   // Selection State
   const selectedTeamIds = filterState.selected.team;
@@ -49,26 +48,20 @@ function SeasonsWindow() {
     () => selectedTeamIds.length > 0,
     [selectedTeamIds]
   );
-  // Check if any season in *this* list is selected/super-selected (for disabling Clear button)
   const isAnySeasonSelectionActive = useMemo(
     () => selectedSeasonIds.length > 0 || superSelectedSeasonIds.length > 0,
     [selectedSeasonIds, superSelectedSeasonIds]
   );
 
-  // Sorting and Filtering Logic (Filters based on super-select, sorts the rest)
+  // Sorting and Filtering Logic (No change needed here)
   const sortedAndFilteredSeasons = useMemo(() => {
     if (!seasons) return [];
-    // Filter based on team super-selection *before* sorting
     const visuallyFilteredSeasons = seasons.filter((season) => {
-      // If any team is super-selected, ONLY include seasons matching those teams
       if (hasAnyTeamSuperSelected) {
         return superSelectedTeamIds.includes(season.team);
       }
-      // Otherwise (no super-selection), include all seasons fetched by useSeasons
       return true;
     });
-
-    // Sort the potentially filtered seasons
     const seasonsToSort = [...visuallyFilteredSeasons];
     seasonsToSort.sort((a: SeasonWithTeamInfo, b: SeasonWithTeamInfo) => {
       let valA: string | number | null | undefined;
@@ -109,15 +102,14 @@ function SeasonsWindow() {
         else primarySortResult = String(valB).localeCompare(String(valA));
       }
       if (primarySortResult === 0) {
-        return (a.startDate ?? '').localeCompare(b.startDate ?? '');
+        return (b.startDate ?? '').localeCompare(a.startDate ?? ''); // Secondary sort by date desc
       }
       return primarySortResult;
     });
     return seasonsToSort;
-    // Dependencies now include filter criteria that affect the filtering step
   }, [seasons, endColumnData, superSelectedTeamIds, hasAnyTeamSuperSelected]);
 
-  // Event Handlers
+  // --- Event Handlers ---
   const handleNameDisplayChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -128,14 +120,31 @@ function SeasonsWindow() {
   ) => {
     setEndColumnData(event.target.value as SeasonEndColumnDataType);
   };
+
+  // NEW: Handler for MouseDown to prevent default Shift behavior (like text selection)
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.shiftKey) {
+      event.preventDefault();
+    }
+  };
+
+  // MODIFIED: Handles click logic based on Shift key
   const handleItemClick = (
     season: SeasonWithTeamInfo,
-    isClickable: boolean
+    isClickable: boolean,
+    event: React.MouseEvent<HTMLDivElement> // Accept event
   ) => {
     if (!isClickable) return;
-    toggleSelection('season', season.id);
-    selectItemForForm('season', season.id, 'view');
+
+    if (event.shiftKey) {
+      // Shift+Click: Load into form ONLY
+      selectItemForForm('season', season.id, 'view');
+    } else {
+      // Normal Click: Toggle selection ONLY
+      toggleSelection('season', season.id);
+    }
   };
+
   const handleAddClick = () => {
     selectItemForForm('season', null, 'add');
   };
@@ -143,7 +152,7 @@ function SeasonsWindow() {
     clearAllByType('season');
   };
 
-  // Rendering Logic for End Column
+  // Rendering Logic for End Column (No change)
   const renderEndColumn = (season: SeasonWithTeamInfo): string | number => {
     switch (endColumnData) {
       case 'startDate':
@@ -163,9 +172,8 @@ function SeasonsWindow() {
   // Main Render
   return (
     <div className="window">
-      {/* Header Row */}
+      {/* Header Row (No change) */}
       <div className="row">
-        {/* Count reflects items after super-select filtering */}
         <p>Seasons ({isLoading ? '...' : sortedAndFilteredSeasons.length})</p>
         <div className="buttons">
           <button onClick={handleAddClick}>Add</button>
@@ -173,23 +181,23 @@ function SeasonsWindow() {
             onClick={handleClearClick}
             disabled={!isAnySeasonSelectionActive}
           >
-            Clear
+            {' '}
+            Clear{' '}
           </button>
         </div>
       </div>
 
-      {/* Options Row */}
+      {/* Options Row (No change) */}
       <div className="options">
         <select value={nameDisplay} onChange={handleNameDisplayChange}>
-          <option value="teamCodeSeasonYear">Team Code + Season + Year</option>
-          <option value="teamNameSeasonYear">Team Name + Season + Year</option>
+          <option value="teamCodeSeasonYear">Code Season</option>
+          <option value="teamNameSeasonYear">Name Season</option>
         </select>
         <select value={endColumnData} onChange={handleEndColumnChange}>
           <option value="startDate">Start Date</option>
-          <option value="meetsCount">Meets Count</option>
-          <option value="athletesCount">Athletes Count</option>
-          <option value="resultsCount">Results Count</option>
-          <option value="none">-- None --</option>
+          <option value="meetsCount">Meets</option>
+          <option value="athletesCount">Athletes</option>
+          <option value="resultsCount">Results</option>
         </select>
       </div>
 
@@ -198,7 +206,8 @@ function SeasonsWindow() {
         {isLoading && <div className="loading-message">Loading seasons...</div>}
         {isError && (
           <div className="error-message">
-            Error loading seasons: {error?.message}
+            {' '}
+            Error loading seasons: {error?.message}{' '}
           </div>
         )}
 
@@ -206,10 +215,7 @@ function SeasonsWindow() {
           !isError &&
           sortedAndFilteredSeasons.map(
             (season: SeasonWithTeamInfo, index: number) => {
-              // --- Refined Filtering and Styling Logic ---
-
-              // 1. Determine Fading/Clickability based on *normal* team selection
-              //    (Only applies if no teams are super-selected)
+              // --- Determine Fading/Clickability (No change needed here) ---
               let isFaded = false;
               let isClickable = true;
               if (
@@ -218,29 +224,25 @@ function SeasonsWindow() {
                 !selectedTeamIds.includes(season.team)
               ) {
                 isFaded = true;
-                isClickable = false; // Cannot interact with faded items
+                isClickable = false;
               }
 
-              // 2. Determine Selection Highlighting (based on season selection)
+              // --- Determine Selection Highlighting (No change needed here) ---
               const isSeasonSelected = selectedSeasonIds.includes(season.id);
               const isSeasonSuperSelected = superSelectedSeasonIds.includes(
                 season.id
               );
 
-              // 3. Build Classes
+              // --- Build Classes (No change needed here) ---
               let itemClasses: string[] = ['item'];
               if (isSeasonSuperSelected) {
                 itemClasses.push('super', 'selected');
               } else if (isSeasonSelected) {
                 itemClasses.push('selected');
               }
-
-              // Apply fade *only* if determined by team selection (step 1)
-              // AND only if the season itself isn't selected/super-selected
               if (isFaded && !isSeasonSelected && !isSeasonSuperSelected) {
                 itemClasses.push('faded');
               }
-              // REMOVED: Logic that faded based on *other* season selections
 
               // --- Rendering ---
               const teamCode = season.teamCode ?? 'N/A';
@@ -251,23 +253,38 @@ function SeasonsWindow() {
                 <div
                   key={season.id}
                   className={itemClasses.join(' ')}
-                  onClick={() => handleItemClick(season, isClickable)}
+                  // MODIFIED: Add onMouseDown, pass event to onClick
+                  onMouseDown={handleMouseDown}
+                  onClick={(e) => handleItemClick(season, isClickable, e)}
                   role="button"
                   tabIndex={isClickable ? 0 : -1}
                   aria-disabled={!isClickable}
+                  // MODIFIED: Differentiate keyboard actions
                   onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
-                    if (isClickable && (e.key === 'Enter' || e.key === ' ')) {
+                    if (
+                      isClickable &&
+                      e.shiftKey &&
+                      (e.key === 'Enter' || e.key === ' ')
+                    ) {
+                      // Shift + Enter/Space: Load to form
                       e.preventDefault();
-                      handleItemClick(season, isClickable);
+                      selectItemForForm('season', season.id, 'view');
+                    } else if (
+                      isClickable &&
+                      (e.key === 'Enter' || e.key === ' ')
+                    ) {
+                      // Enter/Space: Toggle selection
+                      e.preventDefault();
+                      toggleSelection('season', season.id);
                     }
                   }}
                 >
-                  {/* Use index + 1 from the filtered/sorted map */}
                   <p className="count">{index + 1}</p>
                   {nameDisplay === 'teamCodeSeasonYear' ? (
                     <>
-                      <p className="code">{teamCode}</p>
-                      <p className="name">{seasonDetails}</p>
+                      {' '}
+                      <p className="code">{teamCode}</p>{' '}
+                      <p className="name">{seasonDetails}</p>{' '}
                     </>
                   ) : (
                     <p className="name">{`${teamName} ${seasonDetails}`}</p>
@@ -278,7 +295,7 @@ function SeasonsWindow() {
             }
           )}
 
-        {/* Empty State */}
+        {/* Empty State (No change) */}
         {!isLoading && !isError && sortedAndFilteredSeasons.length === 0 && (
           <div className="empty-message">
             No seasons found for the selected team filter.
@@ -289,4 +306,4 @@ function SeasonsWindow() {
   );
 }
 
-export default SeasonsWindow; // Export the main component
+export default SeasonsWindow;

@@ -5,7 +5,6 @@ import { useTeams } from './useTeams';
 import { useFilterContext } from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
 import { Team } from '../../models/index';
-// Assuming window.css is loaded globally or imported elsewhere
 
 // Configuration Types
 type NameDisplayType = 'codeOnly' | 'codeShort' | 'codeLong';
@@ -27,10 +26,10 @@ function TeamsWindow() {
   // Context Hooks
   const {
     state: filterState,
-    toggleSelection,
+    toggleSelection, // Used for normal click/enter/space
     clearAllByType,
   } = useFilterContext();
-  const { selectItemForForm } = useFormContext();
+  const { selectItemForForm } = useFormContext(); // Used for shift+click/enter/space
 
   // Selection State
   const selectedTeamIds = filterState.selected.team;
@@ -42,7 +41,7 @@ function TeamsWindow() {
     [selectedTeamIds, superSelectedTeamIds]
   );
 
-  // Sorting Logic
+  // Sorting Logic (No change needed here)
   const sortedTeams = useMemo(() => {
     if (!teams) return [];
     const teamsToSort = [...teams];
@@ -70,20 +69,19 @@ function TeamsWindow() {
       if (typeof valA === 'number' && typeof valB === 'number') {
         primarySortResult = valB - valA;
       } else {
-        // Fallback for non-numeric or mixed types
         if (valA == null && valB != null) primarySortResult = 1;
         else if (valA != null && valB == null) primarySortResult = -1;
         else primarySortResult = String(valB).localeCompare(String(valA));
       }
       if (primarySortResult === 0) {
-        return a.code.localeCompare(b.code);
+        return a.code.localeCompare(b.code); // Secondary sort by code asc
       }
       return primarySortResult;
     });
     return teamsToSort;
   }, [teams, endColumnData]);
 
-  // Event Handlers
+  // --- Event Handlers ---
   const handleNameDisplayChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -94,10 +92,30 @@ function TeamsWindow() {
   ) => {
     setEndColumnData(event.target.value as EndColumnDataType);
   };
-  const handleItemClick = (teamId: string) => {
-    toggleSelection('team', teamId);
-    selectItemForForm('team', teamId, 'view');
+
+  // NEW: Handler for MouseDown to prevent default Shift behavior (like text selection)
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.shiftKey) {
+      event.preventDefault();
+    }
   };
+
+  // MODIFIED: Handles click logic based on Shift key
+  // Accepts the full team object and the event
+  const handleItemClick = (
+    team: Team,
+    event: React.MouseEvent<HTMLDivElement>
+  ) => {
+    // No isClickable check needed here as teams don't fade based on other selections
+    if (event.shiftKey) {
+      // Shift+Click: Load into form ONLY
+      selectItemForForm('team', team.id, 'view');
+    } else {
+      // Normal Click: Toggle selection ONLY
+      toggleSelection('team', team.id);
+    }
+  };
+
   const handleAddClick = () => {
     selectItemForForm('team', null, 'add');
   };
@@ -105,7 +123,7 @@ function TeamsWindow() {
     clearAllByType('team');
   };
 
-  // Rendering Logic
+  // Rendering Logic (No change needed here)
   const renderTeamName = (team: Team): string => {
     switch (nameDisplay) {
       case 'codeOnly':
@@ -134,18 +152,19 @@ function TeamsWindow() {
   // Main Render
   return (
     <div className="window">
-      {/* Header Row */}
+      {/* Header Row (No change) */}
       <div className="row">
         <p>Teams ({sortedTeams?.length ?? 0})</p>
         <div className="buttons">
           <button onClick={handleAddClick}>Add</button>
           <button onClick={handleClearClick} disabled={!isAnySelectionActive}>
-            Clear
+            {' '}
+            Clear{' '}
           </button>
         </div>
       </div>
 
-      {/* Options Row */}
+      {/* Options Row (No change) */}
       <div className="options">
         <select value={nameDisplay} onChange={handleNameDisplayChange}>
           <option value="codeShort">Short Name</option>
@@ -156,7 +175,6 @@ function TeamsWindow() {
           <option value="seasonsCount">Seasons</option>
           <option value="meetsCount">Meets</option>
           <option value="resultsCount">Results</option>
-          <option value="none">-- None --</option>
         </select>
       </div>
 
@@ -165,7 +183,8 @@ function TeamsWindow() {
         {isLoading && <div className="loading-message">Loading teams...</div>}
         {isError && (
           <div className="error-message">
-            Error loading teams: {error?.message}
+            {' '}
+            Error loading teams: {error?.message}{' '}
           </div>
         )}
         {!isLoading &&
@@ -176,29 +195,33 @@ function TeamsWindow() {
               team.id
             );
 
-            // --- UPDATED CLASS LOGIC ---
-            let itemClasses: string[] = ['item']; // Start with base class
+            // Build classes based only on selection status (no fading for teams)
+            let itemClasses: string[] = ['item'];
             if (isSuperSelected) {
-              // Apply specific classes for super-selected state
               itemClasses.push('super', 'selected');
             } else if (isSelected) {
-              // Apply specific class for selected state
               itemClasses.push('selected');
             }
-            // The condition 'else if (isAnySelectionActive) { itemClasses.push('faded'); }'
-            // has been REMOVED. Items in this list will no longer fade based on selection.
 
             return (
               <div
                 key={team.id}
-                className={itemClasses.join(' ')} // Only includes 'item', 'selected', 'super'
-                onClick={() => handleItemClick(team.id)}
+                className={itemClasses.join(' ')}
+                // MODIFIED: Add onMouseDown, pass team object and event to onClick
+                onMouseDown={handleMouseDown}
+                onClick={(e) => handleItemClick(team, e)}
                 role="button"
-                tabIndex={0}
+                tabIndex={0} // Teams are always clickable
+                // MODIFIED: Differentiate keyboard actions
                 onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.shiftKey && (e.key === 'Enter' || e.key === ' ')) {
+                    // Shift + Enter/Space: Load to form
                     e.preventDefault();
-                    handleItemClick(team.id);
+                    selectItemForForm('team', team.id, 'view');
+                  } else if (e.key === 'Enter' || e.key === ' ') {
+                    // Enter/Space: Toggle selection
+                    e.preventDefault();
+                    toggleSelection('team', team.id);
                   }
                 }}
               >

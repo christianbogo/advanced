@@ -7,6 +7,7 @@ import { db } from '../firebase/firebase'; // Adjust path to your firebase confi
 import { SelectableItemType } from './FormContext'; // Import type
 import TeamsForm from '../window/teams/TeamsForm';
 import SeasonsForm from '../window/seasons/SeasonsForm';
+import MeetsForm from '../window/meets/MeetsForm';
 
 // Import specific form components (we'll create TeamsForm next)
 // import TeamsForm from './TeamsForm';
@@ -137,12 +138,7 @@ function FormViewportContainer() {
     case 'season':
       return <SeasonsForm formData={formData} mode={selectedItem.mode} />;
     case 'meet':
-      // return <MeetsForm formData={formData} mode={selectedItem.mode} />;
-      return (
-        <div className="form-message">
-          Displaying Meet Form (Placeholder) for ID: {selectedItem.id ?? 'New'}
-        </div>
-      );
+      return <MeetsForm formData={formData} mode={selectedItem.mode} />;
     case 'athlete':
       // Handle potential combined Athlete+Person data here
       // return <AthletesForm formData={formData} mode={selectedItem.mode} />;

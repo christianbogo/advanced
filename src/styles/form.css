@@ -251,3 +251,123 @@
 
 /* Optional: Style for specific buttons like 'Delete' */
 /* ... */
+
+.form .add-event-control {
+  display: flex;
+  gap: 0.5rem; /* Space between select and button */
+  align-items: center; /* Align items vertically */
+  margin-bottom: 1rem; /* Space below the add control */
+}
+
+.form .add-event-control select {
+  flex-grow: 1; /* Allow select to take available space */
+  margin-bottom: 0; /* Override default field margin */
+  padding-top: 8px; /* Adjust if label overlap is used */
+}
+
+/* Style for the "Add" button specifically */
+.form .add-event-control .btn-add-event {
+  padding: 8px 15px; /* Match action button padding */
+  background-color: transparent;
+  border: 1px solid var(--grey-light);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 3px;
+  flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+.form .add-event-control .btn-add-event:hover:not(:disabled) {
+  background-color: var(--white);
+}
+
+.form .add-event-control .btn-add-event:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Styling for the ordered list container */
+.form .event-order-list {
+  list-style: none; /* Remove default numbering/bullets */
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--grey-light); /* Optional border around the list */
+  max-height: 250px; /* Example max height */
+  overflow-y: auto; /* Add scroll if list is long */
+}
+
+.form .event-order-list .empty-message {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Styling for each item in the event order list */
+.form .event-order-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem; /* Adjust padding */
+  border-bottom: 1px solid var(--grey-light); /* Separator line */
+  font-size: 0.85rem;
+}
+
+.form .event-order-item:last-child {
+  border-bottom: none; /* Remove border from last item */
+}
+
+/* Numbering */
+.form .event-order-item .event-order-number {
+  min-width: 1.5em; /* Ensure space for numbers */
+  text-align: right;
+  color: var(--text-secondary);
+  font-weight: bold;
+  padding-right: 0.5em;
+}
+
+/* Event details text */
+.form .event-order-item .details {
+  flex-grow: 1; /* Take up available space */
+  text-align: left;
+}
+
+/* Container for the action buttons (Up/Down/Remove) */
+.form .event-order-item .controls {
+  display: flex;
+  gap: 0.3rem; /* Smaller gap for control buttons */
+  flex-shrink: 0; /* Prevent controls from shrinking */
+}
+
+/* Styling for Remove and Move buttons */
+.form .event-order-item .controls button {
+  background-color: transparent;
+  border: 1px solid transparent; /* Make border transparent initially */
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 5px; /* Smaller padding */
+  font-size: 0.9rem; /* Adjust size */
+  line-height: 1; /* Ensure tight fit */
+  border-radius: 3px;
+  font-weight: bold;
+  min-width: 24px; /* Ensure buttons have minimum width */
+  text-align: center;
+}
+
+.form .event-order-item .controls button:hover:not(:disabled) {
+  background-color: var(--grey-light);
+  border-color: var(--grey-light);
+  color: var(--text-primary);
+}
+
+.form .event-order-item .controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Specific styling for remove button (optional) */
+.form .event-order-item .controls .btn-remove-event:hover:not(:disabled) {
+  color: var(--color-accent-red, red); /* Use accent color if defined */
+  background-color: rgba(255, 0, 0, 0.1); /* Light red background on hover */
+}

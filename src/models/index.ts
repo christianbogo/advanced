@@ -85,13 +85,13 @@ export interface Meet {
   id: string;
   nameShort: string;
   nameLong: string;
-
+  team: string; // references teamId
+  season: string; // references seasonId
   date: string; // 'YYYY-MM-DD'
+
   location: string;
   address: string;
 
-  team: string; // references teamId
-  season: string; // references seasonId
   eventOrder: string[]; // references eventId
 
   official: boolean; // true if the meet is official

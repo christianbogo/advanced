@@ -1,7 +1,7 @@
 .window {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 10px);
+  height: calc(100% - 15px);
   padding: 5px;
   border: 1px solid var(--grey-light);
 }
@@ -16,6 +16,10 @@
   border-bottom: 1px solid var(--grey-light);
   padding: 0 0 5px 5px;
   margin-bottom: 5px;
+}
+
+.window .row:focus {
+  outline: none;
 }
 
 .window .row > :first-child {
