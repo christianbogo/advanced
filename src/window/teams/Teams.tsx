@@ -7,9 +7,8 @@ import { useFormContext } from '../../form/FormContext';
 import { Team } from '../../models/index';
 // Assuming window.css is loaded globally or imported elsewhere
 
-// Configuration Types (Simplified)
+// Configuration Types
 type NameDisplayType = 'codeOnly' | 'codeShort' | 'codeLong';
-// Removed 'athletesCount' and 'latestSeasonYear'
 type EndColumnDataType =
   | 'none'
   | 'seasonsCount'
@@ -19,7 +18,6 @@ type EndColumnDataType =
 function TeamsWindow() {
   // State for UI Controls
   const [nameDisplay, setNameDisplay] = useState<NameDisplayType>('codeShort');
-  // Default remains 'seasonsCount'
   const [endColumnData, setEndColumnData] =
     useState<EndColumnDataType>('seasonsCount');
 
@@ -38,21 +36,13 @@ function TeamsWindow() {
   const selectedTeamIds = filterState.selected.team;
   const superSelectedTeamIds = filterState.superSelected.team;
 
-  // Derived State
-  const hasAnyTeamSelected = useMemo(
-    () => selectedTeamIds.length > 0,
-    [selectedTeamIds]
-  );
-  const hasAnyTeamSuperSelected = useMemo(
-    () => superSelectedTeamIds.length > 0,
-    [superSelectedTeamIds]
-  );
+  // Derived State for Disabling Clear Button
   const isAnySelectionActive = useMemo(
-    () => hasAnyTeamSelected || hasAnyTeamSuperSelected,
-    [hasAnyTeamSelected, hasAnyTeamSuperSelected]
+    () => selectedTeamIds.length > 0 || superSelectedTeamIds.length > 0,
+    [selectedTeamIds, superSelectedTeamIds]
   );
 
-  // Sorting Logic (Simplified)
+  // Sorting Logic
   const sortedTeams = useMemo(() => {
     if (!teams) return [];
     const teamsToSort = [...teams];
@@ -72,22 +62,19 @@ function TeamsWindow() {
           valA = a.resultsCount ?? 0;
           valB = b.resultsCount ?? 0;
           break;
-        // Removed cases for 'athletesCount' and 'latestSeasonYear'
         case 'none':
         default:
-          return a.code.localeCompare(b.code); // Sort by code if 'none' or unknown
+          return a.code.localeCompare(b.code);
       }
-      // Primary sort (descending)
       let primarySortResult = 0;
       if (typeof valA === 'number' && typeof valB === 'number') {
         primarySortResult = valB - valA;
       } else {
-        // Fallback for non-numeric or mixed types (shouldn't happen with counts)
+        // Fallback for non-numeric or mixed types
         if (valA == null && valB != null) primarySortResult = 1;
         else if (valA != null && valB == null) primarySortResult = -1;
         else primarySortResult = String(valB).localeCompare(String(valA));
       }
-      // Secondary sort (ascending code)
       if (primarySortResult === 0) {
         return a.code.localeCompare(b.code);
       }
@@ -130,7 +117,6 @@ function TeamsWindow() {
         return team.nameShort;
     }
   };
-
   const renderEndColumn = (team: Team): string | number => {
     switch (endColumnData) {
       case 'seasonsCount':
@@ -139,7 +125,6 @@ function TeamsWindow() {
         return team.meetCount ?? 0;
       case 'resultsCount':
         return team.resultsCount ?? 0;
-      // Removed cases for 'athletesCount' and 'latestSeasonYear'
       case 'none':
       default:
         return '';
@@ -160,27 +145,23 @@ function TeamsWindow() {
         </div>
       </div>
 
-      {/* Options Row (Dropdowns - Simplified) */}
+      {/* Options Row */}
       <div className="options">
         <select value={nameDisplay} onChange={handleNameDisplayChange}>
           <option value="codeShort">Short Name</option>
           <option value="codeLong">Long Name</option>
           <option value="codeOnly">Code Only</option>
         </select>
-        {/* Updated select options */}
         <select value={endColumnData} onChange={handleEndColumnChange}>
           <option value="seasonsCount">Seasons</option>
           <option value="meetsCount">Meets</option>
-          {/* <option value="athletesCount">Athletes</option> Removed */}
           <option value="resultsCount">Results</option>
-          {/* <option value="latestSeasonYear">Current Year</option> Removed */}
           <option value="none">-- None --</option>
         </select>
       </div>
 
       {/* Data List */}
       <div className="list">
-        {/* (Loading, Error, List mapping remain the same) */}
         {isLoading && <div className="loading-message">Loading teams...</div>}
         {isError && (
           <div className="error-message">
@@ -194,18 +175,23 @@ function TeamsWindow() {
             const isSuperSelected: boolean = superSelectedTeamIds.includes(
               team.id
             );
-            let itemClasses: string[] = ['item'];
+
+            // --- UPDATED CLASS LOGIC ---
+            let itemClasses: string[] = ['item']; // Start with base class
             if (isSuperSelected) {
+              // Apply specific classes for super-selected state
               itemClasses.push('super', 'selected');
             } else if (isSelected) {
+              // Apply specific class for selected state
               itemClasses.push('selected');
-            } else if (isAnySelectionActive) {
-              itemClasses.push('faded');
             }
+            // The condition 'else if (isAnySelectionActive) { itemClasses.push('faded'); }'
+            // has been REMOVED. Items in this list will no longer fade based on selection.
+
             return (
               <div
                 key={team.id}
-                className={itemClasses.join(' ')}
+                className={itemClasses.join(' ')} // Only includes 'item', 'selected', 'super'
                 onClick={() => handleItemClick(team.id)}
                 role="button"
                 tabIndex={0}
