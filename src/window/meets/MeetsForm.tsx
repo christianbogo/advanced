@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react'; // Added useState
 import { useFormContext, FormMode } from '../../form/FormContext';
-import { Meet, Season, Team, Event } from '../../models/index'; // Added Event
+import { Meet, Team, Event } from '../../models/index'; // Added Event
 // Hooks
 import { useTeams } from '../teams/useTeams'; // Assuming useTeams fetches all teams needed
 import { useSeasons, SeasonWithTeamInfo } from '../seasons/useSeasons'; // Used to filter seasons based on selected team

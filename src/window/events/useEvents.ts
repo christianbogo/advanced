@@ -1,13 +1,7 @@
 // src/hooks/useEvents.ts (or wherever you keep your data hooks)
 
 import { useQuery } from '@tanstack/react-query';
-import {
-  collection,
-  query,
-  getDocs,
-  orderBy,
-  QueryConstraint, // Import if needed, though orderBy is simpler here
-} from 'firebase/firestore';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/firebase'; // Adjust path as needed
 import { Event } from '../../models/index'; // Adjust path as needed
 
