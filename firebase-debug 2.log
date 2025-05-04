@@ -1,0 +1,27 @@
+[debug] [2025-04-30T16:19:41.641Z] ----------------------------------------------------------------------
+[debug] [2025-04-30T16:19:41.643Z] Command:       /opt/homebrew/Cellar/node/23.10.0_1/bin/node /opt/homebrew/bin/firebase deploy --only functions
+[debug] [2025-04-30T16:19:41.643Z] CLI Version:   14.1.0
+[debug] [2025-04-30T16:19:41.643Z] Platform:      darwin
+[debug] [2025-04-30T16:19:41.643Z] Node Version:  v23.10.0
+[debug] [2025-04-30T16:19:41.643Z] Time:          Wed Apr 30 2025 09:19:41 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-04-30T16:19:41.643Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-04-30T16:19:41.703Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-04-30T16:19:41.703Z] > authorizing via signed-in user (christianbcutter@yahoo.com)
+[debug] [2025-04-30T16:19:41.703Z] [iam] checking project cutter-coach for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2025-04-30T16:19:41.704Z] Checked if tokens are valid: false, expires at: 1745991713375
+[debug] [2025-04-30T16:19:41.704Z] Checked if tokens are valid: false, expires at: 1745991713375
+[debug] [2025-04-30T16:19:41.704Z] > refreshing access token with scopes: []
+[debug] [2025-04-30T16:19:41.704Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-04-30T16:19:41.704Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-04-30T16:19:41.844Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-04-30T16:19:41.844Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-04-30T16:19:41.857Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/cutter-coach:testIamPermissions [none]
+[debug] [2025-04-30T16:19:41.857Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/cutter-coach:testIamPermissions x-goog-quota-user=projects/cutter-coach
+[debug] [2025-04-30T16:19:41.857Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cutter-coach:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2025-04-30T16:19:42.059Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/cutter-coach:testIamPermissions 200
+[debug] [2025-04-30T16:19:42.059Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cutter-coach:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2025-04-30T16:19:42.059Z] Checked if tokens are valid: true, expires at: 1746033580844
+[debug] [2025-04-30T16:19:42.059Z] Checked if tokens are valid: true, expires at: 1746033580844
+[debug] [2025-04-30T16:19:42.059Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/cutter-coach/serviceAccounts/cutter-coach@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2025-04-30T16:19:42.059Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/cutter-coach/serviceAccounts/cutter-coach@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}

@@ -1,0 +1,166 @@
+.window {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 15px);
+  padding: 5px;
+  border: 1px solid var(--grey-light);
+}
+
+.window .row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: start;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1px solid var(--grey-light);
+  padding: 0 0 5px 5px;
+  margin-bottom: 5px;
+}
+
+.window .row > :first-child {
+  flex: 1;
+}
+
+.window .options {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 5px;
+  padding: 0 0 5px 0;
+}
+
+.window .options select,
+.window .options select:focus {
+  font-size: 0.75rem;
+  border: none;
+  background-color: transparent;
+  outline: none;
+}
+
+.window .options > :nth-child(2) {
+  text-align: right;
+}
+
+.window .row .buttons {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: end;
+  align-items: center;
+  gap: 5px;
+}
+
+.window .row .buttons button,
+.window .row .buttons select {
+  color: var(--text-primary);
+  background-color: var(--grey-light);
+  border: 1px solid var(--grey-light);
+  padding: 5px 10px;
+}
+
+.window .row .buttons .active {
+  background-color: var(--active-bg);
+  color: var(--color-active);
+}
+
+.window .row .buttons button:disabled,
+.window .row .buttons select:disabled {
+  background-color: var(--disabled-bg);
+  color: var(--disabled-color);
+  cursor: not-allowed;
+}
+
+.window .row .buttons button:hover:not(:disabled),
+.window .row .buttons select:hover:not(:disabled) {
+  background-color: var(--white);
+  cursor: pointer;
+}
+
+.window .search {
+  border: 1px solid var(--grey-light);
+  background-color: var(--white);
+  padding: 5px 10px;
+  color: var(--text-primary);
+  border-radius: 0;
+  margin-bottom: 5px;
+}
+
+.window .search:active,
+.window .search:focus {
+  outline: none;
+}
+
+.window .list {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: start;
+  overflow: auto;
+}
+
+.window .item {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: start;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+  overflow: ellipsis;
+}
+
+.window .item:focus,
+.window .item:focus-visible {
+  outline: none;
+}
+
+.window .item.super.selected {
+  background-color: var(--grey-dark);
+}
+
+.window .item.super.selected p {
+  color: var(--off-white);
+}
+
+.window .item.selected {
+  background-color: var(--grey-light);
+}
+
+.window .item.faded {
+  opacity: 0.25;
+}
+
+.window .item:hover {
+  background-color: var(--item-hover);
+}
+
+.window .item p {
+  cursor: default;
+}
+
+.window .item .count {
+  font-size: 0.5rem;
+  min-width: 1rem;
+  text-align: center;
+}
+
+.window .item .code {
+  font-weight: bold;
+  min-width: 3rem;
+  text-transform: uppercase;
+}
+
+.window .item .name {
+  flex: 1;
+  text-wrap: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.window .item .end {
+  text-align: right;
+  margin-left: 1rem;
+}
