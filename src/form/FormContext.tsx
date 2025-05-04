@@ -244,7 +244,11 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
   const saveForm = useCallback(async () => {
     const { selectedItem, formData } = state;
     if (!selectedItem.type || !formData) {
-      /* ... error handling ... */ return;
+      dispatch({
+        type: 'SET_ERROR',
+        payload: 'Cannot save: No item selected or form data missing.',
+      });
+      return;
     }
     if (
       selectedItem.type === 'team' &&
@@ -258,7 +262,7 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
       season: 'seasons',
       meet: 'meets',
       athlete: 'athletes',
-      person: 'persons',
+      person: 'people',
       result: 'results',
     };
     const collectionPath = collectionMap[selectedItem.type];

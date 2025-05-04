@@ -138,9 +138,7 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
               disabled={isDisabled}
               required
             >
-              <option value="" disabled>
-                -- Select Type --
-              </option>
+              <option value="" disabled></option>
               {teamTypes.map((typeOption) => (
                 <option key={typeOption} value={typeOption}>
                   {typeOption}

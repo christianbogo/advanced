@@ -285,7 +285,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
             >
               <option value="" disabled>
                 {' '}
-                {isLoadingTeams ? 'Loading Teams...' : '-- Select Team --'}{' '}
+                {isLoadingTeams ? 'Loading...' : ''}{' '}
               </option>
               {teams?.map((team: Team) => (
                 <option key={team.id} value={team.id}>
@@ -312,8 +312,8 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
                 {isLoadingSeasons
                   ? 'Loading...'
                   : currentFormData?.team
-                    ? '-- Select Season --'
-                    : 'Select Team First'}{' '}
+                    ? ''
+                    : 'Select Team'}{' '}
               </option>
               {availableSeasons.map((season: SeasonWithTeamInfo) => (
                 <option key={season.id} value={season.id}>
@@ -379,7 +379,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
             >
               <option value="" disabled>
                 {' '}
-                {isLoadingEvents ? 'Loading...' : 'Select Event'}{' '}
+                {isLoadingEvents ? 'Loading...' : ''}{' '}
               </option>
               {allEvents?.map((event: Event) => (
                 <option
@@ -473,10 +473,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               onChange={handleSelectChange}
               disabled={isDisabled}
             >
-              <option value="" disabled>
-                {' '}
-                -- Select --{' '}
-              </option>{' '}
+              <option value="" disabled></option>{' '}
               <option value="true">Yes</option>{' '}
               <option value="false">No</option>
             </select>
@@ -490,10 +487,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               onChange={handleSelectChange}
               disabled={isDisabled}
             >
-              <option value="" disabled>
-                {' '}
-                -- Select --{' '}
-              </option>{' '}
+              <option value="" disabled></option>{' '}
               <option value="true">Yes</option>{' '}
               <option value="false">No</option>
             </select>
@@ -507,10 +501,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               onChange={handleSelectChange}
               disabled={isDisabled}
             >
-              <option value="" disabled>
-                {' '}
-                -- Select Status --{' '}
-              </option>{' '}
+              <option value="" disabled></option>{' '}
               <option value="true">Yes</option>{' '}
               <option value="false">No</option>
             </select>

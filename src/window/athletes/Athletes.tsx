@@ -10,7 +10,7 @@ function Athletes() {
           <button>Search</button>
         </div>
       </div>
-      {/* <input className="search" type="text" placeholder="Search" /> */}
+      <input className="search" type="text" placeholder="Search" />
       <div className="options">
         <select>
           <option>AgeSex FirstName LastName</option>

@@ -120,7 +120,7 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
               required
             >
               <option value="" disabled>
-                {isLoadingTeams ? 'Loading Teams...' : '-- Select Team --'}
+                {isLoadingTeams ? 'Loading...' : ''}
               </option>
               {/* Populate options from fetched teams data */}
               {teams?.map((team: Team) => (
@@ -140,10 +140,7 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
               disabled={isDisabled}
               required
             >
-              <option value="" disabled>
-                {' '}
-                -- Select Season --{' '}
-              </option>
+              <option value="" disabled></option>
               {seasonNames.map((name) => (
                 <option key={name} value={name}>
                   {name}
@@ -157,7 +154,7 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
               type="text" // Consider pattern validation e.g., "YYYY" or "YYYY-YYYY"
               id="year"
               name="year"
-              placeholder="e.g., 2024 or 2024-2025"
+              placeholder="YYYY or YYYY-YYYY"
               value={formData?.year ?? ''}
               onChange={handleChange}
               readOnly={isDisabled}
@@ -211,9 +208,7 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
               } // Convert back to boolean
               disabled={isDisabled}
             >
-              <option value="" disabled>
-                -- Select Status --
-              </option>
+              <option value="" disabled></option>
               <option value="true">Yes</option>
               <option value="false">No</option>
             </select>
