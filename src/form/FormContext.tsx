@@ -328,7 +328,7 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
       season: 'seasons',
       meet: 'meets',
       athlete: 'athletes',
-      person: 'persons',
+      person: 'people',
       result: 'results',
     };
     const collectionPath = collectionMap[selectedItem.type];

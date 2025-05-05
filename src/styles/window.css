@@ -164,3 +164,14 @@
   text-align: right;
   margin-left: 1rem;
 }
+
+.window .empty-message {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: calc(100% - 15px);
+  padding: 5px;
+  text-align: center;
+  color: var(--text-secondary);
+}

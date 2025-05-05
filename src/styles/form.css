@@ -1,6 +1,3 @@
-/* src/styles/form.css */
-
-/* --- Existing styles --- */
 .form {
   flex: 1;
   display: flex;
@@ -14,14 +11,14 @@
 .form .form-timestamps {
   flex: 1;
   padding-top: 1rem;
-  border-top: 1px solid var(--grey-light); /* Optional divider line */
-  text-align: center; /* Center the timestamp text */
+  border-top: 1px solid var(--grey-light);
+  text-align: center;
 }
 
 .form .form-timestamps p {
-  font-size: 0.6rem; /* Smaller font size */
-  color: var(--text-secondary); /* Muted text color */
-  line-height: 1.3; /* Adjust line height for readability */
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
 }
 
 .form-message {
@@ -83,17 +80,15 @@
 }
 
 .form-options .option:hover {
-  background-color: var(--color-accent-blue); /* Light blue hover effect */
+  background-color: var(--color-accent-blue);
 }
 
 .form-options .option:active {
-  transform: scale(0.98); /* Subtle press effect */
+  transform: scale(0.98);
 }
 
 .form-options .option.selected {
-  background-color: var(
-    --color-accent-green
-  ); /* Distinct background for selected item */
+  background-color: var(--color-accent-green);
   border-color: #0056b3;
   font-weight: bold;
 }
@@ -111,7 +106,7 @@
 .form form {
   display: flex;
   flex-direction: column;
-  gap: 1rem; /* Space between sections */
+  gap: 1rem;
 }
 
 .form section > p {
@@ -131,7 +126,7 @@
   flex-grow: 1;
   height: 1px;
   background-color: var(--grey-light);
-  margin: 0 0.5em; /* Add some space between line and text */
+  margin: 0 0.5em;
 }
 
 .form .field {
@@ -144,29 +139,21 @@
   font-size: 0.75rem;
   color: var(--text-secondary);
   text-align: left;
-  /* Position the label to overlap the top border */
-  transform: translate(
-    0.5rem,
-    0.45rem
-  ); /* Adjust vertical positioning slightly */
-  /* Give label a background matching the form's background */
-  background-color: var(
-    --page-bg,
-    white
-  ); /* Use page background variable or default to white */
+  transform: translate(0.5rem, 0.45rem);
+  background-color: var(--page-bg, white);
   border: 1px solid var(--grey-light);
-  width: min-content; /* Fit the content */
+  width: min-content;
   text-wrap: nowrap;
   padding: 0 0.5rem;
-  z-index: 1; /* Ensure label is above the input border */
-  position: relative; /* Needed for z-index */
+  z-index: 1;
+  position: relative;
 }
 
 .form .field input[type='text'],
 .form .field input[type='email'],
 .form .field input[type='password'],
 .form .field input[type='number'],
-.form .field input[type='date'], /* Added date input */
+.form .field input[type='date'],
 .form .field input[type='tel'],
 .form .field select {
   width: 100%;
@@ -177,15 +164,14 @@
   box-sizing: border-box;
   font-family: inherit;
   color: var(--text-primary);
-  /* Add top padding to push text below the overlapping label */
-  padding-top: 12px; /* Adjust as needed */
+  padding-top: 12px;
 }
 
 .form .field input[type='text']:focus,
 .form .field input[type='email']:focus,
 .form .field input[type='password']:focus,
 .form .field input[type='number']:focus,
-.form .field input[type='date']:focus, /* Added date input */
+.form .field input[type='date']:focus,
 .form .field select:focus {
   outline: none;
   border-color: var(--grey-dark);
@@ -208,23 +194,15 @@
   background-color: var(--white);
 }
 
-/* --- NEW/MODIFIED STYLES for Disabled Select --- */
 .form .field select:disabled {
-  opacity: 1; /* Override browser default transparency */
-  /* Use a background color to indicate disabled state instead of opacity */
-
-  cursor: not-allowed; /* Indicate non-interactive state */
-  /* Optional: Slightly different border if desired */
-  /* border-color: var(--grey-lighter, #dee2e6); */
+  opacity: 1;
+  cursor: not-allowed;
 }
 
-/* Ensure the label background still works with the disabled select background */
 .form .field label {
-  /* Make sure this background matches the actual form background */
   background-color: var(--page-bg, white);
 }
 
-/* Container for action buttons at the bottom */
 .form .buttons {
   display: flex;
   flex-direction: row;
@@ -232,7 +210,6 @@
   gap: 0.5rem;
 }
 
-/* Styling for action buttons */
 .form .buttons button {
   flex: 1;
   padding: 8px 15px;
@@ -250,25 +227,21 @@
   background-color: var(--white);
 }
 
-/* Optional: Style for specific buttons like 'Delete' */
-/* ... */
-
 .form .add-event-control {
   display: flex;
-  gap: 0.5rem; /* Space between select and button */
-  align-items: center; /* Align items vertically */
-  margin-bottom: 1rem; /* Space below the add control */
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
 .form .add-event-control select {
-  flex-grow: 1; /* Allow select to take available space */
-  margin-bottom: 0; /* Override default field margin */
-  padding-top: 8px; /* Adjust if label overlap is used */
+  flex-grow: 1;
+  margin-bottom: 0;
+  padding-top: 8px;
 }
 
-/* Style for the "Add" button specifically */
 .form .add-event-control .btn-add-event {
-  padding: 8px 15px; /* Match action button padding */
+  padding: 8px 15px;
   background-color: transparent;
   border: 1px solid var(--grey-light);
   color: var(--text-primary);
@@ -276,7 +249,7 @@
   cursor: pointer;
   font-family: inherit;
   border-radius: 3px;
-  flex-shrink: 0; /* Prevent button from shrinking */
+  flex-shrink: 0;
 }
 
 .form .add-event-control .btn-add-event:hover:not(:disabled) {
@@ -288,14 +261,13 @@
   opacity: 0.6;
 }
 
-/* Styling for the ordered list container */
 .form .event-order-list {
-  list-style: none; /* Remove default numbering/bullets */
+  list-style: none;
   padding: 0;
   margin: 0;
-  border: 1px solid var(--grey-light); /* Optional border around the list */
-  max-height: 250px; /* Example max height */
-  overflow-y: auto; /* Add scroll if list is long */
+  border: 1px solid var(--grey-light);
+  max-height: 250px;
+  overflow-y: auto;
 }
 
 .form .event-order-list .empty-message {
@@ -305,54 +277,49 @@
   font-style: italic;
 }
 
-/* Styling for each item in the event order list */
 .form .event-order-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.6rem; /* Adjust padding */
-  border-bottom: 1px solid var(--grey-light); /* Separator line */
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--grey-light);
   font-size: 0.85rem;
 }
 
 .form .event-order-item:last-child {
-  border-bottom: none; /* Remove border from last item */
+  border-bottom: none;
 }
 
-/* Numbering */
 .form .event-order-item .event-order-number {
-  min-width: 1.5em; /* Ensure space for numbers */
+  min-width: 1.5em;
   text-align: right;
   color: var(--text-secondary);
   font-weight: bold;
   padding-right: 0.5em;
 }
 
-/* Event details text */
 .form .event-order-item .details {
-  flex-grow: 1; /* Take up available space */
+  flex-grow: 1;
   text-align: left;
 }
 
-/* Container for the action buttons (Up/Down/Remove) */
 .form .event-order-item .controls {
   display: flex;
-  gap: 0.3rem; /* Smaller gap for control buttons */
-  flex-shrink: 0; /* Prevent controls from shrinking */
+  gap: 0.3rem;
+  flex-shrink: 0;
 }
 
-/* Styling for Remove and Move buttons */
 .form .event-order-item .controls button {
   background-color: transparent;
-  border: 1px solid transparent; /* Make border transparent initially */
+  border: 1px solid transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 2px 5px; /* Smaller padding */
-  font-size: 0.9rem; /* Adjust size */
-  line-height: 1; /* Ensure tight fit */
+  padding: 2px 5px;
+  font-size: 0.9rem;
+  line-height: 1;
   border-radius: 3px;
   font-weight: bold;
-  min-width: 24px; /* Ensure buttons have minimum width */
+  min-width: 24px;
   text-align: center;
 }
 
@@ -367,8 +334,226 @@
   cursor: not-allowed;
 }
 
-/* Specific styling for remove button (optional) */
 .form .event-order-item .controls .btn-remove-event:hover:not(:disabled) {
-  color: var(--color-accent-red, red); /* Use accent color if defined */
-  background-color: rgba(255, 0, 0, 0.1); /* Light red background on hover */
+  color: var(--color-accent-red, red);
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background-color: var(--bg-primary, white);
+  padding: 1.5rem;
+  border: 1px solid var(--grey-dark, #ccc);
+  border-radius: 5px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+  min-width: 400px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--grey-light, #eee);
+  padding-bottom: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text-primary);
+}
+
+.modal-close-button {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0 0.5rem;
+}
+
+.modal-close-button:hover {
+  color: var(--text-primary);
+}
+
+.modal-search-container {
+  margin-bottom: 1rem;
+}
+
+.modal-search-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--grey-light);
+  background-color: var(--white);
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
+.modal-search-input:focus {
+  outline: none;
+  border-color: var(--grey-dark);
+}
+
+.modal-list-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  border: 1px solid var(--grey-light);
+  margin-bottom: 1rem;
+  min-height: 150px;
+}
+
+.modal-message {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.modal-message.error {
+  color: var(--color-accent-red, red);
+  font-style: normal;
+}
+
+.modal-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--grey-light);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.modal-list-item:last-child {
+  border-bottom: none;
+}
+
+.modal-list-item:hover,
+.modal-list-item:focus {
+  background-color: var(--grey-lighter, #f8f9fa);
+  outline: none;
+}
+
+.modal-item-name {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  flex-grow: 1;
+  margin-right: 1rem;
+}
+
+.modal-item-detail {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 50%;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--grey-light);
+}
+
+.modal-button {
+  padding: 8px 15px;
+  background-color: transparent;
+  border: 1px solid var(--grey-light);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
+  border-radius: 3px;
+}
+
+.modal-button:hover:not(:disabled) {
+  background-color: var(--white);
+}
+
+.modal-button.secondary:hover:not(:disabled) {
+  background-color: var(--grey-lighter);
+}
+
+.form .person-display-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--grey-light);
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  min-height: 38px;
+  padding-top: 12px;
+}
+
+.form .person-display-name {
+  color: var(--text-primary);
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
+.form .button-change-person {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  font-size: 0.8rem;
+  background-color: var(--grey-lighter);
+  border: 1px solid var(--grey-light);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.form .button-change-person:hover:not(:disabled) {
+  background-color: var(--grey-light);
+  border-color: var(--grey-dark);
+  color: var(--text-primary);
+}
+
+.form .button-change-person:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form .field-hint.subtle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: -0.25rem;
+  padding-left: 0.5rem;
+  font-style: italic;
 }

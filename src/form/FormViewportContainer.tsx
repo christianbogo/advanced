@@ -12,6 +12,7 @@ import SeasonsForm from '../window/seasons/SeasonsForm';
 import MeetsForm from '../window/meets/MeetsForm';
 // --- Import the new PeopleForm ---
 import PeopleForm from '../window/persons/PersonsForm'; // Adjust path as needed
+import AthletesForm from '../window/athletes/AthletesForm';
 
 function FormViewportContainer() {
   const { state, dispatch } = useFormContext();
@@ -137,12 +138,7 @@ function FormViewportContainer() {
       return <MeetsForm formData={formData} mode={selectedItem.mode} />;
     case 'athlete':
       // Placeholder - Replace with AthletesForm when created
-      return (
-        <div className="form-message">
-          Displaying Athlete Form (Placeholder) for ID:{' '}
-          {selectedItem.id ?? 'New'}
-        </div>
-      );
+      return <AthletesForm formData={formData} mode={selectedItem.mode} />;
 
     // --- UPDATED Case for 'person' ---
     case 'person':
