@@ -8,6 +8,7 @@ import Seasons from './window/seasons/Seasons';
 import Athletes from './window/athletes/Athletes';
 import Persons from './window/persons/Persons';
 import Results from './window/results/Results';
+import Events from './window/events/Events';
 import FormViewportContainer from './form/FormViewportContainer';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -131,8 +132,8 @@ function App() {
               <div className="resize-handle-inner vertical" />
             </PanelResizeHandle>
             <Panel {...panelCommonProps} defaultSize={25} order={4}>
-              <div className="panel-content-container placeholder">
-                Events Window
+              <div className="panel-content-container">
+                <Events />
               </div>
             </Panel>
           </PanelGroup>

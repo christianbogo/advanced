@@ -13,6 +13,7 @@ import MeetsForm from '../window/meets/MeetsForm';
 // --- Import the new PeopleForm ---
 import PeopleForm from '../window/persons/PersonsForm'; // Adjust path as needed
 import AthletesForm from '../window/athletes/AthletesForm';
+import EventsForm from '../window/events/EventsForm';
 
 function FormViewportContainer() {
   const { state, dispatch } = useFormContext();
@@ -34,6 +35,7 @@ function FormViewportContainer() {
       athlete: 'athletes',
       person: 'people', // Corrected collection name
       result: 'results',
+      event: 'events', // Added missing 'event' key
     };
     // --- END UPDATED collectionMap ---
 
@@ -137,14 +139,10 @@ function FormViewportContainer() {
     case 'meet':
       return <MeetsForm formData={formData} mode={selectedItem.mode} />;
     case 'athlete':
-      // Placeholder - Replace with AthletesForm when created
       return <AthletesForm formData={formData} mode={selectedItem.mode} />;
 
-    // --- UPDATED Case for 'person' ---
     case 'person':
-      // Render the actual PeopleForm component
       return <PeopleForm formData={formData} mode={selectedItem.mode} />;
-    // --- END UPDATED Case ---
 
     case 'result':
       // Placeholder - Replace with ResultsForm when created
@@ -154,6 +152,9 @@ function FormViewportContainer() {
           {selectedItem.id ?? 'New'}
         </div>
       );
+
+    case 'event':
+      return <EventsForm formData={formData} mode={selectedItem.mode} />;
 
     default:
       // Should not happen if selectedItem.type is validated, but provides a fallback

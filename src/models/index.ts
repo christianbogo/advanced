@@ -113,14 +113,14 @@ export interface Event {
   nameShort: string;
   nameLong: string;
 
-  course: string;
+  course: string; // 'SCY' | 'LCM' | 'Other'
   distance: number;
-  stroke: string;
+  stroke: string; // 'Medley' | 'Fly' | 'Back' | 'Breast' | 'Free' | 'Other'
 
-  hs: boolean; // high school event
-  ms: boolean; // middle school event
-  U14: boolean; // club under 14 event
-  O15: boolean; // club over 15 event
+  hs: boolean; // is official high school event
+  ms: boolean; // is official middle school event
+  U14: boolean; // is official club under 14 event
+  O15: boolean; // is official club over 15 event
 
   resultCount?: number; // Count of results in the event
 
@@ -150,8 +150,11 @@ export interface Result {
 export interface Imports {
   id: string;
   person: string; // references personId
+  team?: string; // references teamId
   event: string; // references eventId
   result: number;
+  date?: string; // 'YYYY-MM-DD'
+  year?: string; // 'YYYY'
 
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
