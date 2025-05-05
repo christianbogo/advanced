@@ -1,3 +1,5 @@
+/* layout.css */
+
 .app {
   display: flex;
   flex-direction: row;
@@ -6,37 +8,34 @@
 }
 
 .data-viewport {
-  flex: 4;
-  overflow: auto;
-
   display: flex;
-  flex-direction: row;
   flex-wrap: nowrap;
   padding: 0.5rem;
-  gap: 0.5rem;
+  gap: 0;
+  flex: 4;
 }
 
-.data-viewport-column {
-  flex: 1;
+.panel-content-container {
+  height: 105%;
+  width: 100%;
   overflow: auto;
-
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
+  /* padding: 0.5rem; */
+  box-sizing: border-box;
+  background-color: #f9f9f9;
 }
 
-.data-viewport-column.second > :first-child {
-  flex: 1.3;
-}
-
-.data-viewport-column-container {
-  flex: 1;
-  overflow: hidden;
-
+.form-viewport {
   display: flex;
   flex-direction: column;
-  flex-wrap: nowrap;
+}
+
+.panel-content-container.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-style: italic;
+  background-color: #efefef;
 }
 
 .form-viewport {
@@ -44,6 +43,7 @@
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
+  border-left: 1px solid #ccc;
 }
 
 .form-options {

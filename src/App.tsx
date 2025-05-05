@@ -1,66 +1,151 @@
-// src/App.tsx
-
-import { useFilterContext } from './filter/FilterContext'; // *** Import the context hook ***
+import React from 'react';
+import { useFilterContext } from './filter/FilterContext';
 import Meets from './window/meets/Meets';
 import './styles/layout.css';
+import './styles/resizable-panels.css';
 import Teams from './window/teams/Teams';
 import Seasons from './window/seasons/Seasons';
 import Athletes from './window/athletes/Athletes';
 import Persons from './window/persons/Persons';
 import Results from './window/results/Results';
 import FormViewportContainer from './form/FormViewportContainer';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 function App() {
-  // *** Get the filter state from the context ***
   const { state: filterState } = useFilterContext();
-
-  // *** Determine if the Athletes column should be rendered ***
   const shouldRenderAthletes =
     filterState.superSelected.team.length > 0 ||
     filterState.superSelected.season.length > 0;
 
+  const panelCommonProps = {
+    style: { overflow: 'hidden' },
+    minSizePercentage: 5,
+  };
+
+  const horizontalHandleProps = {
+    className: 'resize-handle horizontal',
+  };
+  const verticalHandleProps = {
+    className: 'resize-handle vertical',
+  };
+
   return (
     <div className="app">
-      <div className="data-viewport">
-        {/* Column 1: Teams, Seasons, Meets */}
-        <div className="data-viewport-column first">
-          <div className="data-viewport-column-container">
-            <Teams />
+      <PanelGroup
+        direction="horizontal"
+        className="resizable-main-group"
+        autoSaveId="appMainLayout-Horizontal-v1"
+      >
+        <Panel {...panelCommonProps} defaultSize={25} order={1}>
+          <PanelGroup
+            direction="vertical"
+            className="nested-vertical-group"
+            autoSaveId="appCol1Layout-Vertical-v1"
+          >
+            <Panel {...panelCommonProps} defaultSize={33} order={1}>
+              <div className="panel-content-container">
+                <Teams />
+              </div>
+            </Panel>
+            <PanelResizeHandle {...verticalHandleProps}>
+              <div className="resize-handle-inner vertical" />
+            </PanelResizeHandle>
+            <Panel {...panelCommonProps} defaultSize={34} order={2}>
+              <div className="panel-content-container">
+                <Seasons />
+              </div>
+            </Panel>
+            <PanelResizeHandle {...verticalHandleProps}>
+              <div className="resize-handle-inner vertical" />
+            </PanelResizeHandle>
+            <Panel {...panelCommonProps} defaultSize={33} order={3}>
+              <div className="panel-content-container">
+                <Meets />
+              </div>
+            </Panel>
+          </PanelGroup>
+        </Panel>
+        <PanelResizeHandle {...horizontalHandleProps}>
+          <div className="resize-handle-inner horizontal" />
+        </PanelResizeHandle>
+        <Panel {...panelCommonProps} defaultSize={25} order={2}>
+          <PanelGroup
+            direction="vertical"
+            className="nested-vertical-group"
+            autoSaveId="appCol2Layout-Vertical-v1"
+          >
+            {shouldRenderAthletes && (
+              <>
+                <Panel {...panelCommonProps} defaultSize={50} order={1}>
+                  <div className="panel-content-container">
+                    <Athletes />
+                  </div>
+                </Panel>
+                <PanelResizeHandle {...verticalHandleProps}>
+                  <div className="resize-handle-inner vertical" />
+                </PanelResizeHandle>
+              </>
+            )}
+            <Panel
+              {...panelCommonProps}
+              defaultSize={shouldRenderAthletes ? 50 : 100}
+              order={2}
+            >
+              <div className="panel-content-container">
+                <Persons />
+              </div>
+            </Panel>
+          </PanelGroup>
+        </Panel>
+        <PanelResizeHandle {...horizontalHandleProps}>
+          <div className="resize-handle-inner horizontal" />
+        </PanelResizeHandle>
+        <Panel {...panelCommonProps} defaultSize={25} order={3}>
+          <PanelGroup
+            direction="vertical"
+            className="nested-vertical-group"
+            autoSaveId="appCol3Layout-Vertical-v1"
+          >
+            <Panel {...panelCommonProps} defaultSize={25} order={1}>
+              <div className="panel-content-container">
+                <Results />
+              </div>
+            </Panel>
+            <PanelResizeHandle {...verticalHandleProps}>
+              <div className="resize-handle-inner vertical" />
+            </PanelResizeHandle>
+            <Panel {...panelCommonProps} defaultSize={25} order={2}>
+              <div className="panel-content-container placeholder">
+                Imports Window
+              </div>
+            </Panel>
+            <PanelResizeHandle {...verticalHandleProps}>
+              <div className="resize-handle-inner vertical" />
+            </PanelResizeHandle>
+            <Panel {...panelCommonProps} defaultSize={25} order={3}>
+              <div className="panel-content-container placeholder">
+                Bests Window
+              </div>
+            </Panel>
+            <PanelResizeHandle {...verticalHandleProps}>
+              <div className="resize-handle-inner vertical" />
+            </PanelResizeHandle>
+            <Panel {...panelCommonProps} defaultSize={25} order={4}>
+              <div className="panel-content-container placeholder">
+                Events Window
+              </div>
+            </Panel>
+          </PanelGroup>
+        </Panel>
+        <PanelResizeHandle {...horizontalHandleProps}>
+          <div className="resize-handle-inner horizontal" />
+        </PanelResizeHandle>
+        <Panel {...panelCommonProps} defaultSize={25} order={4}>
+          <div className="form-viewport panel-content-container">
+            <FormViewportContainer />
           </div>
-          <div className="data-viewport-column-container">
-            <Seasons />
-          </div>
-          <div className="data-viewport-column-container">
-            <Meets />
-          </div>
-        </div>
-
-        {/* Column 2: Athletes (Conditional), Persons */}
-        <div className="data-viewport-column second">
-          {/* *** Conditionally render the Athletes container *** */}
-          {shouldRenderAthletes && (
-            <div className="data-viewport-column-container">
-              <Athletes />
-            </div>
-          )}
-          {/* Persons container always renders (adjust if needed) */}
-          <div className="data-viewport-column-container">
-            <Persons />
-          </div>
-        </div>
-
-        {/* Column 3: Results */}
-        <div className="data-viewport-column third">
-          <div className="data-viewport-column-container">
-            <Results />
-          </div>
-        </div>
-      </div>
-
-      {/* Form Viewport */}
-      <div className="form-viewport">
-        <FormViewportContainer />
-      </div>
+        </Panel>
+      </PanelGroup>
     </div>
   );
 }
