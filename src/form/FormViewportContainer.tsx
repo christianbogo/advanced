@@ -14,6 +14,7 @@ import MeetsForm from '../window/meets/MeetsForm';
 import PeopleForm from '../window/persons/PersonsForm'; // Adjust path as needed
 import AthletesForm from '../window/athletes/AthletesForm';
 import EventsForm from '../window/events/EventsForm';
+import ResultsForm from '../window/results/ResultsForm';
 
 function FormViewportContainer() {
   const { state, dispatch } = useFormContext();
@@ -146,12 +147,7 @@ function FormViewportContainer() {
 
     case 'result':
       // Placeholder - Replace with ResultsForm when created
-      return (
-        <div className="form-message">
-          Displaying Result Form (Placeholder) for ID:{' '}
-          {selectedItem.id ?? 'New'}
-        </div>
-      );
+      return <ResultsForm mode={selectedItem.mode} />;
 
     case 'event':
       return <EventsForm formData={formData} mode={selectedItem.mode} />;

@@ -17,7 +17,8 @@ export type SelectableItemType =
   | 'meet'
   | 'athlete'
   | 'person'
-  | 'event'; // <<< UPDATED: Added 'event' type
+  | 'event'
+  | 'result';
 
 // 2. Define the structure of the state
 export interface FilterState {
@@ -38,6 +39,7 @@ const initialState: FilterState = {
     athlete: [],
     person: [],
     event: [], // <<< UPDATED: Added event key
+    result: [],
   },
   superSelected: {
     team: [],
@@ -46,6 +48,7 @@ const initialState: FilterState = {
     athlete: [],
     person: [],
     event: [], // <<< UPDATED: Added event key
+    result: [],
   },
 };
 

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { usePeople } from './usePersons'; // Adjust path as needed
 import { Person } from '../../models/index'; // Adjust path as needed
-import { getAgeGenderString } from '../../utils/display'; // Adjust path as needed
+import { getAgeGenderString } from '../../utils/age'; // Adjust path as needed
 import '../../styles/form.css'; // Make sure form.css is imported for modal styles
 
 interface PersonSelectorModalProps {

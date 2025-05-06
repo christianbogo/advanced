@@ -5,7 +5,8 @@ import { usePeople } from './usePersons'; // Adjust path as needed
 import { Person } from '../../models/index'; // Adjust path as needed
 import { useFilterContext } from '../../filter/FilterContext'; // Adjust path as needed
 import { useFormContext } from '../../form/FormContext'; // Adjust path as needed
-import { dateDisplay, getAgeGenderString } from '../../utils/display'; // Adjust path, assume exists for formatting dates
+import { dateDisplay } from '../../utils/date'; // Adjust path, assume exists for formatting dates
+import { getAgeGenderString } from '../../utils/age'; // Adjust path as needed
 import '../../styles/window.css';
 
 // Configuration Types specific to PeopleWindow display options

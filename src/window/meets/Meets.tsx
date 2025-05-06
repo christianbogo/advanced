@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useMeets, MeetWithContextInfo } from './useMeets'; // Import the hook and type
 import { useFilterContext } from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
-import { dateDisplay } from '../../utils/display'; // Assuming you have this utility
+import { dateDisplay } from '../../utils/date'; // Assuming you have this utility
 
 // Configuration Types for MeetsWindow
 type MeetNameDisplayType =

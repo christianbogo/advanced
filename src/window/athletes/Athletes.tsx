@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useAthletes, AthleteWithContextInfo } from './useAthletes'; // Adjust path
 import { useFilterContext } from '../../filter/FilterContext'; // Adjust path
 import { useFormContext } from '../../form/FormContext'; // Adjust path
-import { getAgeGenderString } from '../../utils/display'; // Adjust path (assuming helper moved)
+import { getAgeGenderString } from '../../utils/age'; // Adjust path (assuming helper moved)
 import '../../styles/window.css'; // Adjust path
 
 // Config Types for AthleteWindow display options

@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useSeasons, SeasonWithTeamInfo } from './useSeasons';
 import { useFilterContext } from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
-import { dateDisplay } from '../../utils/display';
+import { dateDisplay } from '../../utils/date';
 
 // Configuration Types for SeasonsWindow
 type SeasonNameDisplayType = 'teamCodeSeasonYear' | 'teamNameSeasonYear';
