@@ -136,8 +136,8 @@ export interface Result {
   meet: string; // references meetId
   event: string; // references eventId
   athletes: string[]; // references athleteId
+  persons: string[]; // references personId
 
-  ages: number[]; // calculated by determining the athlete's age at the time of the meet
   result: number;
   dq: boolean;
   official: boolean; // true if the meet is official

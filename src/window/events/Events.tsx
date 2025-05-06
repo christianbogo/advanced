@@ -18,7 +18,14 @@ function EventsWindow() {
 
   // Data Fetching using the new hook
   // Data is already sorted by stroke (asc), distance (asc), resultCount (desc) from the hook
-  const { data: sortedEvents, isLoading, isError, error } = useEvents();
+  const {
+    data: sortedEvents,
+    isLoading,
+    isError,
+    error,
+    status,
+    isFetching,
+  } = useEvents();
 
   // Context Hooks
   const {
@@ -27,6 +34,21 @@ function EventsWindow() {
     clearAllByType,
   } = useFilterContext();
   const { selectItemForForm } = useFormContext();
+
+  console.log('--- EventsWindow rendering/status ---', {
+    status, // 'loading', 'error', 'success'
+    isFetching, // Is a fetch happening now (even background)?
+    isLoading, // Only true on initial load without cached data
+    isError,
+    error: error?.message, // Log just the error message if exists
+    hasData: !!sortedEvents,
+    count: sortedEvents?.length,
+    // Log snapshot of data IDs/codes
+    eventDataSnapshot: sortedEvents
+      ?.slice(0, 5)
+      .map((e) => ({ id: e.id, code: e.code })),
+  });
+  // <<< END OF
 
   // Selection State for Events
   const selectedEventIds = filterState.selected.event || []; // Ensure default empty array
@@ -138,7 +160,6 @@ function EventsWindow() {
           <option value="ms">MS Official</option>
           <option value="U14">U14 Official</option>
           <option value="O15">O15 Official</option>
-          <option value="none">None</option> {/* Added None option */}
         </select>
       </div>
 
@@ -194,9 +215,7 @@ function EventsWindow() {
                 <p className="code">{eventItem.code}</p>
                 <p className="name">{renderEventName(eventItem)}</p>
                 {/* Render distance and stroke clearly */}
-                <p className="detail">
-                  {eventItem.distance} {eventItem.course} {eventItem.stroke}
-                </p>
+
                 <p className="end">{renderEndColumn(eventItem)}</p>
               </div>
             );

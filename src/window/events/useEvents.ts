@@ -17,8 +17,7 @@ const fetchEvents = async (): Promise<Event[]> => {
   const eventsQuery = query(
     collection(db, 'events'),
     orderBy('stroke', 'asc'), // Primary sort: stroke alphabetical (A-Z)
-    orderBy('distance', 'asc'), // Secondary sort: distance (smallest to largest)
-    orderBy('resultCount', 'desc') // Tertiary sort: result count (most to least) - Assuming descending is desired here like other counts
+    orderBy('distance', 'asc') // Secondary sort: distance (smallest to largest)
   );
 
   const querySnapshot = await getDocs(eventsQuery);
