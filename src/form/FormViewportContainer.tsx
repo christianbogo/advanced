@@ -1,160 +1,172 @@
-// src/form/FormViewportContainer.tsx
-
 import React, { useEffect } from 'react';
-import { useFormContext } from './FormContext';
+import {
+  useFormContext,
+  SelectableItemType,
+  FormDataWithTimestamps,
+  FormMode,
+} from './FormContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebase'; // Adjust path as needed
-import { SelectableItemType } from './FormContext';
 
-// Import existing forms
 import TeamsForm from '../window/teams/TeamsForm';
 import SeasonsForm from '../window/seasons/SeasonsForm';
 import MeetsForm from '../window/meets/MeetsForm';
-// --- Import the new PeopleForm ---
 import PeopleForm from '../window/persons/PersonsForm'; // Adjust path as needed
 import AthletesForm from '../window/athletes/AthletesForm';
 import EventsForm from '../window/events/EventsForm';
 import ResultsForm from '../window/results/ResultsForm';
 
+// This mapping is identical to COLLECTION_PATHS in FormContext.tsx
+// and is a candidate for centralization.
+const COLLECTION_PATHS_VIEWPORT: Record<SelectableItemType, string> = {
+  team: 'teams',
+  season: 'seasons',
+  meet: 'meets',
+  athlete: 'athletes',
+  person: 'people',
+  result: 'results',
+  event: 'events',
+};
+
 function FormViewportContainer() {
   const { state, dispatch } = useFormContext();
   const { selectedItem, isLoading, error, formData } = state;
 
-  // Effect to fetch data when the selected item changes
   useEffect(() => {
-    if (!selectedItem.type || !selectedItem.id) {
-      // No item selected for viewing/editing (could be 'add' mode or nothing selected)
-      // We might dispatch CLEAR_FORM_DATA here if needed, but CLEAR_FORM in reducer handles it mostly.
+    if (!selectedItem.type || !selectedItem.id || selectedItem.mode === 'add') {
+      // If no specific item ID is present, or if we are in 'add' mode,
+      // we don't need to fetch existing data.
+      // The form will either be empty (for 'add') or show a placeholder.
+      // If isLoading was true from a previous fetch, ensure it's reset if appropriate,
+      // though the reducer logic for SELECT_ITEM_FOR_FORM should handle this.
+      if (selectedItem.mode === 'add' && isLoading) {
+        // Explicitly set loading to false if switching to 'add' mode for an item type
+        // and a fetch was in progress or previously indicated.
+        // This might be redundant if reducer handles it perfectly, but can be a safeguard.
+        // Consider if a LOAD_FORM_DATA_CANCEL action would be cleaner.
+        // For now, assuming reducer sets isLoading: false when mode becomes 'add'.
+      }
       return;
     }
 
-    // --- UPDATED collectionMap ---
-    const collectionMap: Record<SelectableItemType, string> = {
-      team: 'teams',
-      season: 'seasons',
-      meet: 'meets',
-      athlete: 'athletes',
-      person: 'people', // Corrected collection name
-      result: 'results',
-      event: 'events', // Added missing 'event' key
-    };
-    // --- END UPDATED collectionMap ---
-
-    const collectionPath = collectionMap[selectedItem.type];
+    const collectionPath = COLLECTION_PATHS_VIEWPORT[selectedItem.type];
     if (!collectionPath) {
       const errorMsg = `Form fetch error: Unknown item type: ${selectedItem.type}`;
+      console.error(`[FormViewportContainer] ${errorMsg}`); // Keep critical error log
       dispatch({ type: 'LOAD_FORM_DATA_ERROR', payload: errorMsg });
-      console.error(errorMsg);
       return;
     }
 
     const fetchData = async () => {
-      // Make sure we don't try to fetch if mode is 'add' even if type is set
-      if (selectedItem.mode === 'add') {
-        // In 'add' mode, we don't fetch, we usually start with an empty/default form state
-        // The reducer handles setting formData to null when SELECT_ITEM_FOR_FORM changes item
-        // We might need a specific action/logic if default values are needed for 'add' mode
-        console.log(
-          `[FormViewportContainer] In 'add' mode for ${selectedItem.type}, skipping fetch.`
-        );
-        // Ensure isLoading is false if we skip fetch
-        if (state.isLoading) {
-          // This might need a dedicated action like LOAD_CANCELLED or rely on reducer logic
-          // For now, we assume reducer handled initial state correctly for 'add'
-        }
-        return;
-      }
-
-      console.log(
-        `[FormViewportContainer] Fetching data for ${selectedItem.type} ID: ${selectedItem.id}`
-      );
       dispatch({ type: 'LOAD_FORM_DATA_START' });
       try {
-        if (!selectedItem.id) {
-          throw new Error('Selected item ID is null or undefined.');
-        }
-        const docRef = doc(db, collectionPath, selectedItem.id); // ID must be non-null here
+        // selectedItem.id is checked to be non-null by the initial guard clause in useEffect
+        const docRef = doc(db, collectionPath, selectedItem.id as string);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          const fetchedData = { id: docSnap.id, ...docSnap.data() };
+          const fetchedData = {
+            id: docSnap.id,
+            ...docSnap.data(),
+          } as FormDataWithTimestamps;
           dispatch({ type: 'LOAD_FORM_DATA_SUCCESS', payload: fetchedData });
-          console.log(
-            `Workspaceed data for ${selectedItem.type} ${selectedItem.id}:`,
-            fetchedData
-          );
         } else {
           const errorMsg = `${selectedItem.type} with ID ${selectedItem.id} not found.`;
           console.error(
-            `Document not found: ${collectionPath}/${selectedItem.id}`
-          );
+            `[FormViewportContainer] Document not found: ${collectionPath}/${selectedItem.id}`
+          ); // Keep critical error log
           dispatch({ type: 'LOAD_FORM_DATA_ERROR', payload: errorMsg });
         }
       } catch (err: any) {
         const errorMsg =
           err.message || `Failed to fetch ${selectedItem.type} data.`;
         console.error(
-          `Error fetching document ${collectionPath}/${selectedItem.id}:`,
+          `[FormViewportContainer] Error fetching document ${collectionPath}/${selectedItem.id}:`,
           err
-        );
+        ); // Keep critical error log
         dispatch({ type: 'LOAD_FORM_DATA_ERROR', payload: errorMsg });
       }
     };
 
     fetchData();
-
-    // Dependency array includes id, type, and mode to refetch if any change
-    // Also include dispatch as per eslint rules
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedItem.id, selectedItem.type, selectedItem.mode, dispatch]); // Added mode and isLoading
-
-  // --- Render Logic ---
+  }, [selectedItem.id, selectedItem.type, selectedItem.mode, dispatch]);
 
   if (isLoading) {
-    return <div className="form-message">Loading form data...</div>;
+    return (
+      <div className="p-4 text-center text-gray-500">Loading form data...</div>
+    );
   }
 
   if (error) {
-    // You might want to allow clearing the error state somehow
-    return <div className="form-message error">Error: {error}</div>;
+    return <div className="p-4 text-center text-red-500">Error: {error}</div>;
   }
 
-  // Handle 'add' mode separately or rely on form component to render blank fields
-  if (selectedItem.mode === 'add' && selectedItem.type) {
-    // Render the appropriate form with null/empty data for 'add' mode
-  } else if (!selectedItem.id || !selectedItem.type) {
-    // No item selected and not in 'add' mode
+  // If in 'add' mode, but no type is selected yet (e.g. initial state or after clearing form)
+  // or if not in 'add' mode and no item ID/type is selected.
+  if (
+    (selectedItem.mode === 'add' && !selectedItem.type) ||
+    (!selectedItem.mode && (!selectedItem.id || !selectedItem.type))
+  ) {
     return (
-      <div className="form-message">
-        Select an item from a list to view or edit details, or click 'Add'.
+      <div className="p-4 text-center text-gray-500">
+        Select an item from a list to view or edit details, or click 'Add' to
+        create a new item.
       </div>
     );
   }
 
-  // --- Render Specific Form ---
+  // Render the specific form based on selectedItem.type
+  // formData might be null in 'add' mode, or if there was an error,
+  // or if data is still loading (though isLoading handles the loading message).
+  // Individual forms should handle a null formData gracefully for 'add' mode.
   switch (selectedItem.type) {
     case 'team':
-      return <TeamsForm formData={formData} mode={selectedItem.mode} />;
+      return (
+        <TeamsForm formData={formData} mode={selectedItem.mode as FormMode} />
+      );
     case 'season':
-      return <SeasonsForm formData={formData} mode={selectedItem.mode} />;
+      return (
+        <SeasonsForm formData={formData} mode={selectedItem.mode as FormMode} />
+      );
     case 'meet':
-      return <MeetsForm formData={formData} mode={selectedItem.mode} />;
+      return (
+        <MeetsForm formData={formData} mode={selectedItem.mode as FormMode} />
+      );
     case 'athlete':
-      return <AthletesForm formData={formData} mode={selectedItem.mode} />;
-
+      return (
+        <AthletesForm
+          formData={formData}
+          mode={selectedItem.mode as FormMode}
+        />
+      );
     case 'person':
-      return <PeopleForm formData={formData} mode={selectedItem.mode} />;
-
+      return (
+        <PeopleForm formData={formData} mode={selectedItem.mode as FormMode} />
+      );
     case 'result':
-      // Placeholder - Replace with ResultsForm when created
-      return <ResultsForm mode={selectedItem.mode} />;
-
+      // Assuming ResultsForm will also take formData and mode
+      return <ResultsForm mode={selectedItem.mode as FormMode} />;
     case 'event':
-      return <EventsForm formData={formData} mode={selectedItem.mode} />;
-
+      return (
+        <EventsForm formData={formData} mode={selectedItem.mode as FormMode} />
+      );
     default:
-      // Should not happen if selectedItem.type is validated, but provides a fallback
-      return <div className="form-message">Select an item type.</div>;
+      // This case should ideally not be reached if selectedItem.type is always valid when non-null.
+      // If selectedItem.type is null (e.g. after CLEAR_FORM), the message above handles it.
+      if (selectedItem.type) {
+        // Only show if type is somehow invalid but present
+        return (
+          <div className="p-4 text-center text-orange-500">
+            Invalid item type: {selectedItem.type}
+          </div>
+        );
+      }
+      // Fallback for any other unhandled state, though the initial message should cover most.
+      return (
+        <div className="p-4 text-center text-gray-500">
+          Please select an item or an action.
+        </div>
+      );
   }
 }
 

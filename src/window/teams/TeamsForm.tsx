@@ -1,26 +1,19 @@
-// src/form/TeamsForm.tsx
-
 import React from 'react';
 import { useFormContext, FormMode } from '../../form/FormContext';
 import { Team } from '../../models/index';
-// Import Timestamp type from Firestore to check instance type
 import { Timestamp } from 'firebase/firestore';
 import '../../styles/form.css'; // Ensure CSS path is correct
 
 interface TeamsFormProps {
-  // Ensure formData type includes potential timestamps
   formData: Partial<
     Team & { createdAt?: Timestamp; updatedAt?: Timestamp }
   > | null;
   mode: FormMode;
 }
 
-// Helper function to format Firestore Timestamps
 const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
   if (timestamp && timestamp instanceof Timestamp) {
-    // Convert Firestore Timestamp to JavaScript Date and format it
     return timestamp.toDate().toLocaleString(undefined, {
-      // Use browser default locale
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -29,7 +22,7 @@ const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
       hour12: true,
     });
   }
-  return 'N/A'; // Return 'N/A' if timestamp is missing or not a Timestamp object
+  return 'N/A';
 };
 
 function TeamsForm({ formData, mode }: TeamsFormProps) {
@@ -78,6 +71,7 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
     await deleteItem();
   };
 
+  // This could be moved to a constants file if used elsewhere (e.g. src/constants/teamConstants.ts)
   const teamTypes: Team['type'][] = [
     'Club',
     'Masters',
@@ -88,10 +82,8 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
   return (
     <div className="form">
       <form onSubmit={(e) => e.preventDefault()}>
-        {/* --- Identification Section --- */}
         <section>
-          <p>Identification</p>
-          {/* ... input fields ... */}
+          <p className="form-section-title">Identification</p>
           <div className="field">
             <label htmlFor="code">Team Code</label>
             <input
@@ -102,6 +94,7 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
               onChange={handleChange}
               readOnly={isDisabled}
               required
+              aria-required="true"
             />
           </div>
           <div className="field">
@@ -114,6 +107,7 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
               onChange={handleChange}
               readOnly={isDisabled}
               required
+              aria-required="true"
             />
           </div>
           <div className="field">
@@ -126,6 +120,7 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
               onChange={handleChange}
               readOnly={isDisabled}
               required
+              aria-required="true"
             />
           </div>
           <div className="field">
@@ -137,8 +132,11 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
               onChange={handleChange}
               disabled={isDisabled}
               required
+              aria-required="true"
             >
-              <option value="" disabled></option>
+              <option value="" disabled>
+                Select a type
+              </option>
               {teamTypes.map((typeOption) => (
                 <option key={typeOption} value={typeOption}>
                   {typeOption}
@@ -148,10 +146,8 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
           </div>
         </section>
 
-        {/* --- Location Section --- */}
         <section>
-          <p>Location</p>
-          {/* ... input fields ... */}
+          <p className="form-section-title">Location</p>
           <div className="field">
             <label htmlFor="location">Location Name</label>
             <input
@@ -176,12 +172,10 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
           </div>
         </section>
 
-        {/* --- Action Buttons Section --- */}
         <section>
-          <p>Actions</p>
+          <p className="form-section-title">Actions</p>
           {error && <div className="form-message error">{error}</div>}
           <div className="buttons">
-            {/* ... Edit, Save, Cancel, Delete buttons ... */}
             {mode === 'view' && selectedItem?.id && (
               <button type="button" onClick={handleEditClick}>
                 Edit
@@ -193,6 +187,7 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
                   type="button"
                   onClick={handleSaveClick}
                   disabled={isSaving}
+                  className="primary"
                 >
                   {isSaving ? 'Saving...' : 'Save'}
                 </button>
@@ -218,16 +213,18 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
           </div>
         </section>
 
-        {/* --- NEW: Timestamps Section --- */}
-        {/* Only show timestamps if formData exists and has them */}
         {(formData?.createdAt || formData?.updatedAt) && (
           <section className="form-timestamps">
-            {/* Use paragraph tags or spans for display */}
+            {/* <p className="form-section-title">Details</p> */}
             {formData.createdAt && (
-              <p>Created: {formatTimestamp(formData.createdAt)}</p>
+              <p className="timestamp-field">
+                Created: {formatTimestamp(formData.createdAt)}
+              </p>
             )}
             {formData.updatedAt && (
-              <p>Updated: {formatTimestamp(formData.updatedAt)}</p>
+              <p className="timestamp-field">
+                Updated: {formatTimestamp(formData.updatedAt)}
+              </p>
             )}
           </section>
         )}

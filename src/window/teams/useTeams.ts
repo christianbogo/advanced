@@ -8,11 +8,9 @@ import { Team } from '../../models/index'; // Adjust path as needed
  * @returns Promise<Team[]> - A promise that resolves to an array of Team objects.
  */
 const fetchTeams = async (): Promise<Team[]> => {
-  // Query the 'teams' collection, ordering by code for consistency
   const teamsQuery = query(collection(db, 'teams'), orderBy('code'));
   const querySnapshot = await getDocs(teamsQuery);
 
-  // Map the documents to the Team interface, including the document ID
   const teams = querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...(doc.data() as Omit<Team, 'id'>), // Cast data, assuming it matches Team interface minus id
@@ -27,11 +25,11 @@ const fetchTeams = async (): Promise<Team[]> => {
  */
 export function useTeams() {
   return useQuery<Team[], Error>({
-    // Specify return type (Team array) and error type
-    queryKey: ['teams'], // Unique key for React Query caching
-    queryFn: fetchTeams, // The function that performs the actual data fetching
-    // Optional: Configure staleTime, cacheTime, etc. if needed
-    // staleTime: 5 * 60 * 1000, // 5 minutes
-    // cacheTime: 15 * 60 * 1000, // 15 minutes
+    queryKey: ['teams'],
+    queryFn: fetchTeams,
+    // Optional: Configure staleTime, cacheTime, etc. here if needed
+    // For example:
+    // staleTime: 5 * 60 * 1000, // Data is considered fresh for 5 minutes
+    // cacheTime: 15 * 60 * 1000, // Data is kept in cache for 15 minutes
   });
 }

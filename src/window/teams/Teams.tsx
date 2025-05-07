@@ -1,12 +1,12 @@
-// src/window/teams/Teams.tsx
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTeams } from './useTeams';
-import { useFilterContext } from '../../filter/FilterContext';
+import {
+  useFilterContext,
+  SelectableItemType,
+} from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
 import { Team } from '../../models/index';
 
-// Configuration Types
 type NameDisplayType = 'codeOnly' | 'codeShort' | 'codeLong';
 type EndColumnDataType =
   | 'none'
@@ -15,39 +15,34 @@ type EndColumnDataType =
   | 'resultsCount';
 
 function TeamsWindow() {
-  // State for UI Controls
   const [nameDisplay, setNameDisplay] = useState<NameDisplayType>('codeShort');
   const [endColumnData, setEndColumnData] =
     useState<EndColumnDataType>('seasonsCount');
 
-  // Data Fetching
   const { data: teams, isLoading, isError, error } = useTeams();
 
-  // Context Hooks
   const {
     state: filterState,
-    toggleSelection, // Used for normal click/enter/space
+    toggleSelection,
     clearAllByType,
   } = useFilterContext();
-  const { selectItemForForm } = useFormContext(); // Used for shift+click/enter/space
+  const { selectItemForForm } = useFormContext();
 
-  // Selection State
   const selectedTeamIds = filterState.selected.team;
   const superSelectedTeamIds = filterState.superSelected.team;
 
-  // Derived State for Disabling Clear Button
   const isAnySelectionActive = useMemo(
     () => selectedTeamIds.length > 0 || superSelectedTeamIds.length > 0,
     [selectedTeamIds, superSelectedTeamIds]
   );
 
-  // Sorting Logic (No change needed here)
   const sortedTeams = useMemo(() => {
     if (!teams) return [];
     const teamsToSort = [...teams];
     teamsToSort.sort((a: Team, b: Team) => {
       let valA: string | number | null | undefined;
       let valB: string | number | null | undefined;
+
       switch (endColumnData) {
         case 'seasonsCount':
           valA = a.seasonCount ?? 0;
@@ -65,6 +60,7 @@ function TeamsWindow() {
         default:
           return a.code.localeCompare(b.code);
       }
+
       let primarySortResult = 0;
       if (typeof valA === 'number' && typeof valB === 'number') {
         primarySortResult = valB - valA;
@@ -73,57 +69,71 @@ function TeamsWindow() {
         else if (valA != null && valB == null) primarySortResult = -1;
         else primarySortResult = String(valB).localeCompare(String(valA));
       }
+
       if (primarySortResult === 0) {
-        return a.code.localeCompare(b.code); // Secondary sort by code asc
+        return a.code.localeCompare(b.code);
       }
       return primarySortResult;
     });
     return teamsToSort;
   }, [teams, endColumnData]);
 
-  // --- Event Handlers ---
-  const handleNameDisplayChange = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    setNameDisplay(event.target.value as NameDisplayType);
-  };
-  const handleEndColumnChange = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    setEndColumnData(event.target.value as EndColumnDataType);
-  };
+  const handleNameDisplayChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setNameDisplay(event.target.value as NameDisplayType);
+    },
+    []
+  );
 
-  // NEW: Handler for MouseDown to prevent default Shift behavior (like text selection)
-  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.shiftKey) {
-      event.preventDefault();
-    }
-  };
+  const handleEndColumnChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setEndColumnData(event.target.value as EndColumnDataType);
+    },
+    []
+  );
 
-  // MODIFIED: Handles click logic based on Shift key
-  // Accepts the full team object and the event
-  const handleItemClick = (
-    team: Team,
-    event: React.MouseEvent<HTMLDivElement>
-  ) => {
-    // No isClickable check needed here as teams don't fade based on other selections
-    if (event.shiftKey) {
-      // Shift+Click: Load into form ONLY
-      selectItemForForm('team', team.id, 'view');
-    } else {
-      // Normal Click: Toggle selection ONLY
-      toggleSelection('team', team.id);
-    }
-  };
+  const handleMouseDown = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (event.shiftKey) {
+        event.preventDefault();
+      }
+    },
+    []
+  );
 
-  const handleAddClick = () => {
-    selectItemForForm('team', null, 'add');
-  };
-  const handleClearClick = () => {
-    clearAllByType('team');
-  };
+  const handleItemClick = useCallback(
+    (team: Team, event: React.MouseEvent<HTMLDivElement>) => {
+      if (event.shiftKey) {
+        selectItemForForm('team' as SelectableItemType, team.id, 'view');
+      } else {
+        toggleSelection('team' as SelectableItemType, team.id);
+      }
+    },
+    [selectItemForForm, toggleSelection]
+  );
 
-  // Rendering Logic (No change needed here)
+  const handleItemKeyDown = useCallback(
+    (team: Team, event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          selectItemForForm('team' as SelectableItemType, team.id, 'view');
+        } else {
+          toggleSelection('team' as SelectableItemType, team.id);
+        }
+      }
+    },
+    [selectItemForForm, toggleSelection]
+  );
+
+  const handleAddClick = useCallback(() => {
+    selectItemForForm('team' as SelectableItemType, null, 'add');
+  }, [selectItemForForm]);
+
+  const handleClearClick = useCallback(() => {
+    clearAllByType('team' as SelectableItemType);
+  }, [clearAllByType]);
+
   const renderTeamName = (team: Team): string => {
     switch (nameDisplay) {
       case 'codeOnly':
@@ -135,6 +145,7 @@ function TeamsWindow() {
         return team.nameShort;
     }
   };
+
   const renderEndColumn = (team: Team): string | number => {
     switch (endColumnData) {
       case 'seasonsCount':
@@ -149,22 +160,18 @@ function TeamsWindow() {
     }
   };
 
-  // Main Render
   return (
     <div className="window">
-      {/* Header Row (No change) */}
       <div className="row">
         <p>Teams ({sortedTeams?.length ?? 0})</p>
         <div className="buttons">
           <button onClick={handleAddClick}>Add</button>
           <button onClick={handleClearClick} disabled={!isAnySelectionActive}>
-            {' '}
-            Clear{' '}
+            Clear
           </button>
         </div>
       </div>
 
-      {/* Options Row (No change) */}
       <div className="options">
         <select value={nameDisplay} onChange={handleNameDisplayChange}>
           <option value="codeShort">Short Name</option>
@@ -175,16 +182,15 @@ function TeamsWindow() {
           <option value="seasonsCount">Seasons</option>
           <option value="meetsCount">Meets</option>
           <option value="resultsCount">Results</option>
+          <option value="none">Sort by: Code</option>
         </select>
       </div>
 
-      {/* Data List */}
       <div className="list">
         {isLoading && <div className="loading-message">Loading teams...</div>}
-        {isError && (
+        {isError && error && (
           <div className="error-message">
-            {' '}
-            Error loading teams: {error?.message}{' '}
+            Error loading teams: {error.message}
           </div>
         )}
         {!isLoading &&
@@ -195,7 +201,6 @@ function TeamsWindow() {
               team.id
             );
 
-            // Build classes based only on selection status (no fading for teams)
             let itemClasses: string[] = ['item'];
             if (isSuperSelected) {
               itemClasses.push('super', 'selected');
@@ -207,23 +212,13 @@ function TeamsWindow() {
               <div
                 key={team.id}
                 className={itemClasses.join(' ')}
-                // MODIFIED: Add onMouseDown, pass team object and event to onClick
                 onMouseDown={handleMouseDown}
                 onClick={(e) => handleItemClick(team, e)}
+                onKeyDown={(e) => handleItemKeyDown(team, e)}
                 role="button"
-                tabIndex={0} // Teams are always clickable
-                // MODIFIED: Differentiate keyboard actions
-                onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
-                  if (e.shiftKey && (e.key === 'Enter' || e.key === ' ')) {
-                    // Shift + Enter/Space: Load to form
-                    e.preventDefault();
-                    selectItemForForm('team', team.id, 'view');
-                  } else if (e.key === 'Enter' || e.key === ' ') {
-                    // Enter/Space: Toggle selection
-                    e.preventDefault();
-                    toggleSelection('team', team.id);
-                  }
-                }}
+                aria-pressed={isSelected || isSuperSelected}
+                aria-label={`Team ${team.code}, ${renderTeamName(team)}`}
+                tabIndex={0}
               >
                 <p className="count">{index + 1}</p>
                 <p className="code">{team.code}</p>
