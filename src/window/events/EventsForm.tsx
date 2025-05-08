@@ -36,6 +36,8 @@ const strokeOptions: Event['stroke'][] = [
   'Back',
   'Breast',
   'Free',
+  'Free Relay',
+  'Medley Relay',
   'Other',
 ];
 const booleanOptions = [

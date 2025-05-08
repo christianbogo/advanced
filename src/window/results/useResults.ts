@@ -9,7 +9,6 @@ import {
   orderBy,
   documentId,
   QueryConstraint,
-  Timestamp, // Make sure Timestamp is imported if used in your Result model
 } from 'firebase/firestore';
 import { db } from '../../firebase/firebase'; // Adjust path as needed
 import { Result, Person, Event, Meet } from '../../models/index'; // Adjust path as needed
@@ -312,10 +311,10 @@ const fetchResultsWithContext = async (
           const lastName = person?.lastName;
           return `${firstName || ''} ${lastName || ''}`.trim() || null; // Return null if name is empty
         })
-        .filter(
-          (name): name is string => name !== null && name !== ''
-        ) || // Provide a default if no valid names found // Filter out null/empty names
-      [`Unknown Person(s)`];
+        .filter((name): name is string => name !== null && name !== '') || [
+        // Provide a default if no valid names found // Filter out null/empty names
+        `Unknown Person(s)`,
+      ];
 
       // Get Event String
       let eventString = `Unknown Event`;

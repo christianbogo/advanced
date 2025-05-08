@@ -4,8 +4,7 @@ import {
   FormMode,
   FormDataWithTimestamps,
 } from '../../form/FormContext'; // Adjust path, import FormDataWithTimestamps
-import { Result, Team, Event, Meet, Season, Person } from '../../models/index'; // Adjust path, import Person
-import { Timestamp } from 'firebase/firestore';
+import { Result, Team, Event, Person } from '../../models/index'; // Adjust path, import Person
 
 // Hooks for dropdown data
 import { useTeams } from '../teams/useTeams'; // Adjust path
