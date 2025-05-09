@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
-import { useResults, ResultWithContextInfo } from './useResults';
+import { useResults } from './useResults'; // Use the refactored hook
+import { Result } from '../../types/data'; // Import the base Result type
 import { useFilterContext } from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
 import { hundredthsToTimeString } from '../../utils/time';
 import '../../styles/window.css';
 
 function ResultsWindow() {
-  const { data: results, isLoading, isError, error } = useResults();
+  const { data: results, isLoading, isError, error } = useResults(); // results is Result[]
 
   const {
     state: filterState,
@@ -30,21 +31,43 @@ function ResultsWindow() {
   };
 
   const handleItemClick = (
-    result: ResultWithContextInfo,
+    resultItem: Result,
     isClickable: boolean,
     event: React.MouseEvent<HTMLDivElement>
   ) => {
     if (!isClickable) return;
 
     if (event.shiftKey) {
-      selectItemForForm('result', result.id, 'view');
+      selectItemForForm('result', resultItem.id, 'view');
     } else {
-      toggleSelection('result', result.id);
+      toggleSelection('result', resultItem.id);
     }
   };
 
   const handleAddClick = () => selectItemForForm('result', null, 'add');
   const handleClearClick = () => clearAllByType('result');
+
+  const getPersonNamesString = (resultItem: Result): string => {
+    if (!resultItem.athletes || resultItem.athletes.length === 0)
+      return 'Unknown Athlete(s)';
+    return (
+      resultItem.athletes
+        .map((athlete) => {
+          const person = athlete.person;
+          const firstName = person?.preferredName || person?.firstName;
+          const lastName = person?.lastName;
+          return `${firstName ?? ''} ${lastName ?? ''}`.trim();
+        })
+        .filter(Boolean)
+        .join(', ') || 'Unnamed Athlete(s)'
+    );
+  };
+
+  const getEventString = (resultItem: Result): string => {
+    const eventObj = resultItem.event;
+    if (!eventObj) return 'Unknown Event';
+    return `${eventObj.distance || '?'}m ${eventObj.stroke || '?'} ${eventObj.course || '?'}`;
+  };
 
   return (
     <div className="window">
@@ -63,17 +86,20 @@ function ResultsWindow() {
 
       <div className="list">
         {isLoading && <div className="loading-message">Loading results...</div>}
-        {isError && (
+        {isError && error && (
           <div className="error-message">
-            Error loading results: {error?.message}
+            {' '}
+            Error loading results: {error.message}{' '}
           </div>
         )}
+
         {!isLoading && !isError && displayedResults.length === 0 && (
           <div className="empty-message">
             No results found matching the current filters.
             {(filterState.superSelected.team.length > 0 ||
               filterState.superSelected.season.length > 0 ||
               filterState.superSelected.meet.length > 0 ||
+              filterState.superSelected.event.length > 0 ||
               filterState.superSelected.athlete.length > 0 ||
               filterState.superSelected.person.length > 0) &&
               ' (Super-selection active)'}
@@ -82,89 +108,96 @@ function ResultsWindow() {
 
         {!isLoading &&
           !isError &&
-          displayedResults.map((result, index) => {
+          displayedResults.map((resultItem, index) => {
             let isFaded = false;
+            const { selected, superSelected } = filterState;
 
-            if (
-              filterState.selected.team.length > 0 &&
-              !filterState.superSelected.team.length
-            ) {
-              if (!filterState.selected.team.includes(result.team)) {
+            if (selected.team.length > 0 && !superSelected.team.length) {
+              if (
+                !resultItem.team?.id ||
+                !selected.team.includes(resultItem.team.id)
+              )
                 isFaded = true;
-              }
             }
             if (
               !isFaded &&
-              filterState.selected.season.length > 0 &&
-              !filterState.superSelected.season.length
+              selected.season.length > 0 &&
+              !superSelected.season.length
             ) {
-              if (!filterState.selected.season.includes(result.season)) {
+              if (
+                !resultItem.season?.id ||
+                !selected.season.includes(resultItem.season.id)
+              )
                 isFaded = true;
-              }
             }
             if (
               !isFaded &&
-              filterState.selected.meet.length > 0 &&
-              !filterState.superSelected.meet.length
+              selected.meet.length > 0 &&
+              !superSelected.meet.length
             ) {
-              if (!filterState.selected.meet.includes(result.meet)) {
+              if (
+                !resultItem.meet?.id ||
+                !selected.meet.includes(resultItem.meet.id)
+              )
                 isFaded = true;
-              }
             }
             if (
               !isFaded &&
-              filterState.selected.athlete.length > 0 &&
-              !filterState.superSelected.athlete.length
+              selected.event.length > 0 &&
+              !superSelected.event.length
             ) {
-              const resultAthleteSet = new Set(result.athletes || []);
-              const selectedAthleteSet = new Set(filterState.selected.athlete);
-              const intersection = new Set(
-                Array.from(resultAthleteSet).filter((x) =>
-                  selectedAthleteSet.has(x)
+              if (
+                !resultItem.event?.id ||
+                !selected.event.includes(resultItem.event.id)
+              )
+                isFaded = true;
+            }
+            if (
+              !isFaded &&
+              selected.athlete.length > 0 &&
+              !superSelected.athlete.length
+            ) {
+              const selectedAthleteSet = new Set(selected.athlete);
+              if (
+                !resultItem.athletes.some(
+                  (ath) => ath.id && selectedAthleteSet.has(ath.id)
                 )
-              );
-              if (intersection.size === 0) {
+              )
                 isFaded = true;
-              }
             }
             if (
               !isFaded &&
-              filterState.selected.person.length > 0 &&
-              !filterState.superSelected.person.length
+              selected.person.length > 0 &&
+              !superSelected.person.length
             ) {
-              const resultPersonSet = new Set(result.persons || []);
-              const selectedPersonSet = new Set(filterState.selected.person);
-              const intersection = new Set(
-                Array.from(resultPersonSet).filter((x) =>
-                  selectedPersonSet.has(x)
+              const selectedPersonSet = new Set(selected.person);
+              if (
+                !resultItem.athletes.some(
+                  (ath) =>
+                    ath.person?.id && selectedPersonSet.has(ath.person.id)
                 )
-              );
-              if (intersection.size === 0) {
+              )
                 isFaded = true;
-              }
             }
 
             const isClickable = !isFaded;
-
-            const isSelected = selectedResultIds.includes(result.id);
-            const isSuperSelected = superSelectedResultIds.includes(result.id);
+            const isSelected = selectedResultIds.includes(resultItem.id);
+            const isSuperSelected = superSelectedResultIds.includes(
+              resultItem.id
+            );
 
             let itemClasses: string[] = ['item'];
-            if (isSuperSelected) {
-              itemClasses.push('super', 'selected');
-            } else if (isSelected) {
-              itemClasses.push('selected');
-            }
-            if (isFaded && !isSelected && !isSuperSelected) {
+            if (isSuperSelected) itemClasses.push('super', 'selected');
+            else if (isSelected) itemClasses.push('selected');
+            if (isFaded && !isSelected && !isSuperSelected)
               itemClasses.push('faded');
-            }
 
             return (
               <div
-                key={result.id}
+                key={resultItem.id}
                 className={itemClasses.join(' ')}
                 onMouseDown={handleMouseDown}
-                onClick={(e) => handleItemClick(result, isClickable, e)}
+                onClick={(e) => handleItemClick(resultItem, isClickable, e)}
                 role="button"
                 tabIndex={isClickable ? 0 : -1}
                 aria-disabled={!isClickable}
@@ -172,20 +205,22 @@ function ResultsWindow() {
                   if (!isClickable) return;
                   if (e.shiftKey && (e.key === 'Enter' || e.key === ' ')) {
                     e.preventDefault();
-                    selectItemForForm('result', result.id, 'view');
+                    selectItemForForm('result', resultItem.id, 'view');
                   } else if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    toggleSelection('result', result.id);
+                    toggleSelection('result', resultItem.id);
                   }
                 }}
               >
                 <p className="count">{index + 1}</p>
                 <div className="result-details">
-                  <p className="name">{result.personNames.join(', ')}</p>
-                  <p className="event">{result.eventString}</p>
-                  {result.dq && <p className="dq-marker">DQ</p>}
+                  <p className="name">{getPersonNamesString(resultItem)}</p>
+                  <p className="event">{getEventString(resultItem)}</p>
+                  {resultItem.dq && <p className="dq-marker">DQ</p>}
                 </div>
-                <p className="end">{hundredthsToTimeString(result.result)}</p>
+                <p className="end">
+                  {hundredthsToTimeString(resultItem.result)}
+                </p>
               </div>
             );
           })}

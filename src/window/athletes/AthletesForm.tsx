@@ -1,18 +1,15 @@
 // src/window/athletes/AthletesForm.tsx
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useFormContext, FormMode } from '../../form/FormContext'; // Adjust path
-import { useFilterContext } from '../../filter/FilterContext'; // Correctly importing FilterContext hook
-import { Athlete, Person, Team, Season } from '../../models/index'; // Adjust path
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useFormContext, FormMode } from '../../form/FormContext';
+import { useFilterContext } from '../../filter/FilterContext';
+import { Athlete, Person, Team, Season } from '../../types/data';
 import { Timestamp } from 'firebase/firestore';
-// Hooks for dropdown data
-import { useTeams } from '../teams/useTeams'; // Adjust path
-import { useSeasons, SeasonWithTeamInfo } from '../seasons/useSeasons'; // Adjust path
-// Import the modal component
-import PersonSelectorModal from '../persons/PersonSelectorModal'; // Adjust path
-import '../../styles/form.css'; // Adjust path
+import { useTeams } from '../teams/useTeams';
+import { useSeasons } from '../seasons/useSeasons';
+import PersonSelectorModal from '../persons/PersonSelectorModal'; // Assuming path is correct
+import '../../styles/form.css';
 
-// Helper function (assume available/imported)
 const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
   if (timestamp && timestamp instanceof Timestamp) {
     const date = timestamp.toDate();
@@ -28,17 +25,8 @@ const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
   return 'N/A';
 };
 
-// Define props including assumed Person details fetched by the container
 interface AthletesFormProps {
-  formData: Partial<
-    Athlete & {
-      createdAt?: Timestamp;
-      updatedAt?: Timestamp;
-      personFirstName?: string;
-      personLastName?: string;
-      personPreferredName?: string;
-    }
-  > | null;
+  formData: Partial<Athlete> | null; // Simplified
   mode: FormMode;
 }
 
@@ -54,196 +42,180 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
     deleteItem,
   } = useFormContext();
   const { selectedItem, isSaving, error, formData: currentFormData } = state;
-
-  // *** Get FilterContext state - Correctly using the hook ***
   const { state: filterState } = useFilterContext();
 
-  // --- State for Person Selector Modal ---
   const [isPersonModalOpen, setIsPersonModalOpen] = useState(false);
 
-  // --- Data Fetching for Dropdowns ---
-  const { data: teams, isLoading: isLoadingTeams } = useTeams();
-  const { data: allSeasons, isLoading: isLoadingSeasons } = useSeasons();
+  const { data: teamsData, isLoading: isLoadingTeams } = useTeams();
+  const { data: allSeasonsData, isLoading: isLoadingSeasons } = useSeasons();
 
-  // --- Memos ---
   const isDisabled = mode === 'view' || mode === null || isSaving;
 
   const availableSeasons = useMemo(() => {
-    if (!allSeasons || !currentFormData?.team) return [];
-    return allSeasons.filter((season) => season.team === currentFormData.team);
-  }, [allSeasons, currentFormData?.team]);
+    const currentTeam = currentFormData?.team as Team | undefined;
+    if (!allSeasonsData || !currentTeam?.id) {
+      return [];
+    }
+    return allSeasonsData.filter((season) => season.team.id === currentTeam.id);
+  }, [allSeasonsData, currentFormData?.team]);
 
   const selectedPersonName = useMemo(() => {
-    if (!currentFormData?.person) return 'No Person Selected';
-    const currentFirstName =
-      currentFormData?.personPreferredName || currentFormData?.personFirstName;
-    const currentLastName = currentFormData?.personLastName;
-    if (currentFirstName && currentLastName) {
-      return `${currentFirstName} ${currentLastName}`;
-    }
-    const initialFirstName =
-      formData?.personPreferredName || formData?.personFirstName;
-    const initialLastName = formData?.personLastName;
-    if (initialFirstName && initialLastName) {
-      return `${initialFirstName} ${initialLastName}`;
-    }
-    return `Person ID: ${currentFormData.person}`;
-  }, [
-    currentFormData?.person,
-    currentFormData?.personFirstName,
-    currentFormData?.personLastName,
-    currentFormData?.personPreferredName,
-    formData?.personFirstName,
-    formData?.personLastName,
-    formData?.personPreferredName,
-  ]);
+    const person = currentFormData?.person as Person | undefined;
+    if (!person?.id) return 'No Person Selected';
+    const firstName = person.preferredName || person.firstName;
+    const lastName = person.lastName;
+    return (
+      `${firstName ?? ''} ${lastName ?? ''}`.trim() || `Person ID: ${person.id}`
+    );
+  }, [currentFormData?.person]);
 
-  // --- Effect for Pre-selecting Team/Season on Add ---
-  // *** Correctly uses filterState from FilterContext ***
   useEffect(() => {
+    // Pre-select team/season in 'add' mode based on filter context
     if (
       mode === 'add' &&
       !currentFormData?.team &&
       !currentFormData?.season &&
-      allSeasons
+      teamsData &&
+      allSeasonsData
     ) {
-      // Accessing superSelected IDs from filterState
       const { season: superSelectedSeasonIds, team: superSelectedTeamIds } =
         filterState.superSelected;
 
-      // console.log( // Keep logs minimal
-      //   '[AthletesForm Effect] Checking pre-selection for Add mode.',
-      //   { superSelectedSeasonIds, superSelectedTeamIds }
-      // );
-
       if (superSelectedSeasonIds.length === 1) {
         const selectedSeasonId = superSelectedSeasonIds[0];
-        const seasonData = allSeasons.find((s) => s.id === selectedSeasonId);
-        if (seasonData && seasonData.team) {
-          // console.log( // Keep logs minimal
-          //   `[AthletesForm Effect] Pre-selecting Season ${selectedSeasonId} and Team ${seasonData.team}`
-          // );
-          updateFormField('season', selectedSeasonId);
-          updateFormField('team', seasonData.team);
-        } else {
-          // console.warn( // Keep logs minimal
-          //   `[AthletesForm Effect] Could not find team data for super-selected season ${selectedSeasonId}`
-          // );
+        const seasonObject = allSeasonsData.find(
+          (s) => s.id === selectedSeasonId
+        );
+        if (seasonObject?.team) {
+          // Ensure season and its embedded team are found
+          updateFormField('season', seasonObject);
+          updateFormField('team', seasonObject.team); // Use the embedded team object
         }
       } else if (superSelectedTeamIds.length === 1) {
         const selectedTeamId = superSelectedTeamIds[0];
-        // console.log( // Keep logs minimal
-        //   `[AthletesForm Effect] Pre-selecting Team ${selectedTeamId}`
-        // );
-        updateFormField('team', selectedTeamId);
+        const teamObject = teamsData.find((t) => t.id === selectedTeamId);
+        if (teamObject) {
+          updateFormField('team', teamObject); // Store the team object
+        }
       }
-      // else { // Keep logs minimal
-      //   console.log(
-      //     '[AthletesForm Effect] No single Team/Season super-selected, skipping pre-selection.'
-      //   );
-      // }
     }
   }, [
     mode,
-    filterState.superSelected.season, // Dependency on filterState
-    filterState.superSelected.team, // Dependency on filterState
-    allSeasons,
+    filterState.superSelected.season,
+    filterState.superSelected.team,
+    allSeasonsData,
+    teamsData,
     updateFormField,
     currentFormData?.team,
     currentFormData?.season,
   ]);
 
-  // --- Event Handlers (remain unchanged) ---
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateFormField(e.target.name, e.target.value);
-  };
+  const handleGenericFieldChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      updateFormField(e.target.name, e.target.value);
+    },
+    [updateFormField]
+  );
 
-  const handleTeamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newTeamId = e.target.value;
-    updateFormField('team', newTeamId);
-    const currentSeasonId = currentFormData?.season;
-    if (currentSeasonId) {
-      const seasonBelongsToNewTeam =
-        allSeasons?.find((s) => s.id === currentSeasonId)?.team === newTeamId;
-      if (!seasonBelongsToNewTeam) {
-        updateFormField('season', '');
+  const handleTeamChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const selectedTeamId = event.target.value;
+      const teamObject = teamsData?.find((t) => t.id === selectedTeamId);
+      if (teamObject) {
+        updateFormField('team', teamObject);
+        const currentSeasonObject = currentFormData?.season as
+          | Season
+          | undefined;
+        if (
+          currentSeasonObject &&
+          currentSeasonObject.team.id !== teamObject.id
+        ) {
+          updateFormField('season', null);
+        }
+      } else {
+        updateFormField('team', null);
+        updateFormField('season', null);
       }
-    }
-  };
+    },
+    [teamsData, updateFormField, currentFormData?.season]
+  );
 
-  const handleSeasonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    updateFormField('season', e.target.value);
-  };
+  const handleSeasonChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const selectedSeasonId = event.target.value;
+      const seasonObject = availableSeasons?.find(
+        (s) => s.id === selectedSeasonId
+      );
+      updateFormField('season', seasonObject ?? null);
+    },
+    [availableSeasons, updateFormField]
+  );
 
-  const handleOpenPersonModal = () => {
+  const handleOpenPersonModal = useCallback(() => {
     if (!isDisabled) setIsPersonModalOpen(true);
-  };
-  const handleClosePersonModal = () => setIsPersonModalOpen(false);
+  }, [isDisabled]);
 
-  const handlePersonSelect = (
-    selectedPerson: Pick<
-      Person,
-      'id' | 'firstName' | 'lastName' | 'preferredName'
-    >
-  ) => {
-    updateFormField('person', selectedPerson.id);
-    updateFormField('personFirstName', selectedPerson.firstName ?? null);
-    updateFormField('personLastName', selectedPerson.lastName ?? null);
-    updateFormField(
-      'personPreferredName',
-      selectedPerson.preferredName ?? null
-    );
-    setIsPersonModalOpen(false);
-  };
+  const handleClosePersonModal = useCallback(
+    () => setIsPersonModalOpen(false),
+    []
+  );
 
-  const handleTriggerAddNewPerson = () => {
+  const handlePersonSelect = useCallback(
+    (selectedPerson: Person) => {
+      updateFormField('person', selectedPerson); // Store the full Person object
+      setIsPersonModalOpen(false);
+    },
+    [updateFormField]
+  );
+
+  const handleTriggerAddNewPerson = useCallback(() => {
     selectItemForForm('person', null, 'add');
-  };
+    // Keep the Athlete form open; context/viewport handles potential focus shift
+  }, [selectItemForForm]);
 
-  const handleEditClick = () => {
+  const handleEditClick = useCallback(() => {
     if (selectedItem?.type === 'athlete' && selectedItem?.id) {
       selectItemForForm(selectedItem.type, selectedItem.id, 'edit');
     }
-  };
-  const handleCancelClick = () => {
+  }, [selectedItem, selectItemForForm]);
+
+  const handleCancelClick = useCallback(() => {
     if (selectedItem?.mode === 'add') {
       clearForm();
     } else if (selectedItem?.type === 'athlete' && selectedItem?.id) {
       revertFormData();
       selectItemForForm(selectedItem.type, selectedItem.id, 'view');
     }
-  };
-  const handleDeleteClick = async () => {
+  }, [selectedItem, clearForm, revertFormData, selectItemForForm]);
+
+  const handleDeleteClick = useCallback(async () => {
     if (isSaving || !selectedItem?.id) return;
     await deleteItem();
-  };
+  }, [isSaving, selectedItem, deleteItem]);
 
-  const handleSaveClick = async () => {
+  const handleSaveClick = useCallback(async () => {
     if (isSaving || !currentFormData) return;
-    if (
-      !currentFormData.person ||
-      !currentFormData.team ||
-      !currentFormData.season
-    ) {
+    const teamObject = currentFormData.team as Team | undefined;
+    const seasonObject = currentFormData.season as Season | undefined;
+    const personObject = currentFormData.person as Person | undefined;
+
+    // Validate that embedded objects have been selected
+    if (!personObject?.id || !teamObject?.id || !seasonObject?.id) {
       dispatch({
         type: 'SET_ERROR',
         payload: 'A Person, Team, and Season must be selected.',
       });
       return;
     }
-    if (error) {
-      dispatch({ type: 'SET_ERROR', payload: null });
-    }
+    if (error) dispatch({ type: 'SET_ERROR', payload: null });
     await saveForm();
-  };
+  }, [isSaving, currentFormData, saveForm, dispatch, error]);
 
-  // --- Render (remains unchanged) ---
   return (
     <div className="form">
       <form onSubmit={(e) => e.preventDefault()}>
-        {/* Person Selection */}
         <section>
-          <p>Person</p>
+          <p className="form-section-title">Person</p>
           <div className="field person-selection-field">
             <label htmlFor="personDisplay">Selected Person</label>
             <div className="person-display-container">
@@ -261,6 +233,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
                       ? 'Change selected person'
                       : 'Select a person'
                   }
+                  aria-required="true" // Indicate selection is required
                 >
                   {currentFormData?.person ? 'Change' : 'Select'}
                 </button>
@@ -269,28 +242,30 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
           </div>
           {!isPersonModalOpen &&
             mode !== 'view' &&
-            !currentFormData?.person && (
-              <p className="field-hint subtle">Search or add person.</p>
+            !(currentFormData?.person as Person | undefined)?.id && (
+              <p className="field-hint subtle">
+                Search or add person (required).
+              </p>
             )}
         </section>
 
-        {/* Team & Season Selection */}
         <section>
-          <p>Team & Season Assignment</p>
+          <p className="form-section-title">Team & Season Assignment</p>
           <div className="field">
             <label htmlFor="team">Team</label>
             <select
               id="team"
               name="team"
-              value={currentFormData?.team ?? ''}
+              value={(currentFormData?.team as Team | undefined)?.id ?? ''}
               onChange={handleTeamChange}
               disabled={isDisabled || isLoadingTeams}
               required
+              aria-required="true"
             >
               <option value="" disabled>
                 {isLoadingTeams ? 'Loading Teams...' : '-- Select Team --'}
               </option>
-              {teams?.map((team) => (
+              {teamsData?.map((team) => (
                 <option key={team.id} value={team.id}>
                   {team.code} - {team.nameShort}
                 </option>
@@ -302,32 +277,34 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
             <select
               id="season"
               name="season"
-              value={currentFormData?.season ?? ''}
+              value={(currentFormData?.season as Season | undefined)?.id ?? ''}
               onChange={handleSeasonChange}
               disabled={
-                !currentFormData?.team || isDisabled || isLoadingSeasons
+                !(currentFormData?.team as Team | undefined)?.id ||
+                isDisabled ||
+                isLoadingSeasons
               }
               required
+              aria-required="true"
             >
               <option value="" disabled>
                 {isLoadingSeasons
                   ? 'Loading Seasons...'
-                  : !currentFormData?.team
+                  : !(currentFormData?.team as Team | undefined)?.id
                     ? 'Select Team First'
                     : '-- Select Season --'}
               </option>
-              {availableSeasons.map((season: SeasonWithTeamInfo) => (
+              {availableSeasons.map((season) => (
                 <option key={season.id} value={season.id}>
-                  {season.season ?? '?'} {season.year ?? '?'}
+                  {season.quarter ?? '?'} {season.year ?? '?'}
                 </option>
               ))}
             </select>
           </div>
         </section>
 
-        {/* Athlete Specific Details */}
         <section>
-          <p>Athlete Details (Optional)</p>
+          <p className="form-section-title">Athlete Details (Optional)</p>
           <div className="field">
             <label htmlFor="grade">Grade</label>
             <input
@@ -335,7 +312,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
               id="grade"
               name="grade"
               value={currentFormData?.grade ?? ''}
-              onChange={handleChange}
+              onChange={handleGenericFieldChange}
               readOnly={isDisabled}
             />
           </div>
@@ -346,7 +323,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
               id="group"
               name="group"
               value={currentFormData?.group ?? ''}
-              onChange={handleChange}
+              onChange={handleGenericFieldChange}
               readOnly={isDisabled}
             />
           </div>
@@ -357,7 +334,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
               id="subgroup"
               name="subgroup"
               value={currentFormData?.subgroup ?? ''}
-              onChange={handleChange}
+              onChange={handleGenericFieldChange}
               readOnly={isDisabled}
             />
           </div>
@@ -368,15 +345,14 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
               id="lane"
               name="lane"
               value={currentFormData?.lane ?? ''}
-              onChange={handleChange}
+              onChange={handleGenericFieldChange}
               readOnly={isDisabled}
             />
           </div>
         </section>
 
-        {/* Actions Section */}
         <section>
-          <p>Actions</p>
+          <p className="form-section-title">Actions</p>
           {error && <div className="form-message error">{error}</div>}
           <div className="buttons">
             {mode === 'view' && selectedItem?.id && (
@@ -390,8 +366,10 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
                   type="button"
                   onClick={handleSaveClick}
                   disabled={isSaving}
+                  className="primary"
                 >
-                  {isSaving ? 'Saving...' : 'Save'}
+                  {' '}
+                  {isSaving ? 'Saving...' : 'Save'}{' '}
                 </button>
                 <button
                   type="button"
@@ -409,26 +387,29 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
                 disabled={isSaving}
                 className="delete"
               >
-                {isSaving ? 'Deleting...' : 'Delete'}
+                {' '}
+                {isSaving ? 'Deleting...' : 'Delete'}{' '}
               </button>
             )}
           </div>
         </section>
 
-        {/* Timestamps Section */}
         {(currentFormData?.createdAt || currentFormData?.updatedAt) && (
           <section className="form-timestamps">
             {currentFormData.createdAt && (
-              <p>Created: {formatTimestamp(currentFormData.createdAt)}</p>
+              <p className="timestamp-field">
+                Created: {formatTimestamp(currentFormData.createdAt)}
+              </p>
             )}
             {currentFormData.updatedAt && (
-              <p>Updated: {formatTimestamp(currentFormData.updatedAt)}</p>
+              <p className="timestamp-field">
+                Updated: {formatTimestamp(currentFormData.updatedAt)}
+              </p>
             )}
           </section>
         )}
       </form>
 
-      {/* Modal Rendering */}
       <PersonSelectorModal
         isOpen={isPersonModalOpen}
         onClose={handleClosePersonModal}

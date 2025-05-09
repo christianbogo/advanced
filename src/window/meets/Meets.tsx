@@ -1,16 +1,16 @@
 // src/window/meets/MeetsWindow.tsx
 
 import React, { useState, useMemo } from 'react';
-import { useMeets, MeetWithContextInfo } from './useMeets'; // Import the hook and type
+import { useMeets } from './useMeets';
+import { Meet } from '../../types/data'; // Import the Meet type
 import { useFilterContext } from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
-import { dateDisplay } from '../../utils/date'; // Assuming you have this utility
+import { dateDisplay } from '../../utils/date';
 
-// Configuration Types for MeetsWindow
 type MeetNameDisplayType =
-  | 'teamCodeShortName' // TeamCode MeetShortName
-  | 'longNameSeasonYear' // MeetLongName SeasonName SeasonYear
-  | 'teamCodeLongName'; // TeamCode MeetLongName
+  | 'teamCodeShortName'
+  | 'longNameSeasonYear'
+  | 'teamCodeLongName';
 type MeetEndColumnDataType =
   | 'date'
   | 'eventsCount'
@@ -18,24 +18,20 @@ type MeetEndColumnDataType =
   | 'resultsCount';
 
 function MeetsWindow() {
-  // State for UI Controls
   const [nameDisplay, setNameDisplay] =
     useState<MeetNameDisplayType>('teamCodeShortName');
   const [endColumnData, setEndColumnData] =
     useState<MeetEndColumnDataType>('date');
 
-  // Data Fetching
   const { data: meets, isLoading, isError, error } = useMeets();
 
-  // Context Hooks
   const {
     state: filterState,
-    toggleSelection, // Used for normal click/enter/space
+    toggleSelection,
     clearAllByType,
   } = useFilterContext();
-  const { selectItemForForm } = useFormContext(); // Used for shift+click/enter/space
+  const { selectItemForForm } = useFormContext();
 
-  // Selection State from FilterContext (Including Teams)
   const selectedTeamIds = filterState.selected.team;
   const superSelectedTeamIds = filterState.superSelected.team;
   const selectedSeasonIds = filterState.selected.season;
@@ -43,7 +39,6 @@ function MeetsWindow() {
   const selectedMeetIds = filterState.selected.meet;
   const superSelectedMeetIds = filterState.superSelected.meet;
 
-  // Derived State (Including Teams)
   const hasAnyTeamSelected = useMemo(
     () => selectedTeamIds.length > 0,
     [selectedTeamIds]
@@ -65,11 +60,10 @@ function MeetsWindow() {
     [selectedMeetIds, superSelectedMeetIds]
   );
 
-  // Sorting Logic (No changes needed here)
   const sortedMeets = useMemo(() => {
     if (!meets) return [];
-    const meetsToSort = [...meets];
-    meetsToSort.sort((a: MeetWithContextInfo, b: MeetWithContextInfo) => {
+    const meetsToSort: Meet[] = [...meets];
+    meetsToSort.sort((a: Meet, b: Meet) => {
       let valA: string | number | null | undefined;
       let valB: string | number | null | undefined;
       switch (endColumnData) {
@@ -109,14 +103,13 @@ function MeetsWindow() {
         else primarySortResult = String(valB).localeCompare(String(valA));
       }
       if (primarySortResult === 0) {
-        return (b.date ?? '').localeCompare(a.date ?? '');
+        return (b.date ?? '').localeCompare(a.date ?? ''); // Secondary sort by date
       }
       return primarySortResult;
     });
     return meetsToSort;
   }, [meets, endColumnData]);
 
-  // --- Event Handlers ---
   const handleNameDisplayChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -128,27 +121,22 @@ function MeetsWindow() {
     setEndColumnData(event.target.value as MeetEndColumnDataType);
   };
 
-  // NEW: Handler for MouseDown to prevent default Shift behavior (like text selection)
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.shiftKey) {
       event.preventDefault();
     }
   };
 
-  // UPDATED: onClick handler - determines action based on Shift key
-  // No longer needs preventDefault for shift-click as handleMouseDown handles it.
   const handleItemClick = (
-    meet: MeetWithContextInfo,
+    meet: Meet,
     isClickable: boolean,
     event: React.MouseEvent<HTMLDivElement>
   ) => {
     if (!isClickable) return;
 
     if (event.shiftKey) {
-      // Shift+Click: Load into form ONLY
       selectItemForForm('meet', meet.id, 'view');
     } else {
-      // Normal Click: Toggle selection ONLY
       toggleSelection('meet', meet.id);
     }
   };
@@ -160,8 +148,7 @@ function MeetsWindow() {
     clearAllByType('meet');
   };
 
-  // Rendering Logic for End Column (No change)
-  const renderEndColumn = (meet: MeetWithContextInfo): string | number => {
+  const renderEndColumn = (meet: Meet): string | number => {
     switch (endColumnData) {
       case 'date':
         return dateDisplay(meet.date) ?? 'N/A';
@@ -176,33 +163,33 @@ function MeetsWindow() {
     }
   };
 
-  // Rendering Logic for Name Column (No change)
-  const renderNameColumn = (meet: MeetWithContextInfo): React.ReactNode => {
-    const teamCode = meet.teamCode ?? 'N/A';
+  const renderNameColumn = (meet: Meet): React.ReactNode => {
+    const teamCode = meet.team?.code ?? 'N/A';
     const meetShortName = meet.nameShort ?? 'Unnamed Meet';
     const meetLongName = meet.nameLong ?? 'Unnamed Meet';
-    const seasonDetails =
-      `${meet.seasonName ?? ''} ${meet.seasonYear ?? ''}`.trim();
+    const seasonQuarter = meet.season?.quarter ?? '';
+    const seasonYear = meet.season?.year ?? '';
+    const seasonDetails = `${seasonQuarter} ${seasonYear}`.trim();
 
     switch (nameDisplay) {
       case 'teamCodeShortName':
         return (
           <>
-            {' '}
-            <p className="code">{teamCode}</p>{' '}
-            <p className="name">{meetShortName}</p>{' '}
+            <p className="code">{teamCode}</p>
+            <p className="name">{meetShortName}</p>
           </>
         );
       case 'longNameSeasonYear':
         return (
-          <p className="name">{`${meetLongName} (${seasonDetails || 'No Season'})`}</p>
+          <p className="name">
+            {`${meetLongName} (${seasonDetails || 'No Season Info'})`}
+          </p>
         );
       case 'teamCodeLongName':
         return (
           <>
-            {' '}
-            <p className="code">{teamCode}</p>{' '}
-            <p className="name">{meetLongName}</p>{' '}
+            <p className="code">{teamCode}</p>
+            <p className="name">{meetLongName}</p>
           </>
         );
       default:
@@ -210,10 +197,8 @@ function MeetsWindow() {
     }
   };
 
-  // Main Render
   return (
     <div className="window">
-      {/* Header Row (No change) */}
       <div className="row">
         <p>Meets ({isLoading ? '...' : sortedMeets.length})</p>
         <div className="buttons">
@@ -222,13 +207,11 @@ function MeetsWindow() {
             onClick={handleClearClick}
             disabled={!isAnyMeetSelectionActive}
           >
-            {' '}
-            Clear{' '}
+            Clear
           </button>
         </div>
       </div>
 
-      {/* Options Row (No change) */}
       <div className="options">
         <select value={nameDisplay} onChange={handleNameDisplayChange}>
           <option value="teamCodeShortName">TeamCode ShortName</option>
@@ -243,20 +226,17 @@ function MeetsWindow() {
         </select>
       </div>
 
-      {/* Data List */}
       <div className="list">
         {isLoading && <div className="loading-message">Loading meets...</div>}
-        {isError && (
+        {isError && error && (
           <div className="error-message">
-            {' '}
-            Error loading meets: {error?.message}{' '}
+            Error loading meets: {error.message}
           </div>
         )}
 
         {!isLoading &&
           !isError &&
-          sortedMeets.map((meet: MeetWithContextInfo, index: number) => {
-            // --- Determine Fading/Clickability (No change) ---
+          sortedMeets.map((meet: Meet, index: number) => {
             let isFaded = false;
             let isClickable = true;
             const shouldFadeBySeason =
@@ -266,23 +246,22 @@ function MeetsWindow() {
               !hasAnyTeamSuperSelected &&
               !shouldFadeBySeason &&
               !hasAnySeasonSuperSelected;
+
             if (shouldFadeBySeason) {
-              if (!selectedSeasonIds.includes(meet.season)) {
+              if (!meet.season || !selectedSeasonIds.includes(meet.season.id)) {
                 isFaded = true;
                 isClickable = false;
               }
             } else if (shouldFadeByTeam) {
-              if (!selectedTeamIds.includes(meet.team)) {
+              if (!meet.team || !selectedTeamIds.includes(meet.team.id)) {
                 isFaded = true;
                 isClickable = false;
               }
             }
 
-            // --- Determine Selection Highlighting (No change) ---
             const isMeetSelected = selectedMeetIds.includes(meet.id);
             const isMeetSuperSelected = superSelectedMeetIds.includes(meet.id);
 
-            // --- Build Classes (No change) ---
             let itemClasses: string[] = ['item'];
             if (isMeetSuperSelected) {
               itemClasses.push('super', 'selected');
@@ -293,19 +272,16 @@ function MeetsWindow() {
               itemClasses.push('faded');
             }
 
-            // --- Rendering ---
             return (
               <div
                 key={meet.id}
                 className={itemClasses.join(' ')}
-                // MODIFIED: Add onMouseDown handler
                 onMouseDown={handleMouseDown}
                 onClick={(e) => handleItemClick(meet, isClickable, e)}
                 role="button"
                 tabIndex={isClickable ? 0 : -1}
                 aria-disabled={!isClickable}
                 onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
-                  // Keyboard handler remains the same
                   if (
                     isClickable &&
                     e.shiftKey &&
@@ -329,7 +305,6 @@ function MeetsWindow() {
             );
           })}
 
-        {/* Empty State (No change) */}
         {!isLoading && !isError && sortedMeets.length === 0 && (
           <div className="empty-message">
             No meets found for the current filter.

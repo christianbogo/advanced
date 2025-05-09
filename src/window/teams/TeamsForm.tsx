@@ -1,29 +1,13 @@
 import React from 'react';
 import { useFormContext, FormMode } from '../../form/FormContext';
 import { Team } from '../../models/index';
-import { Timestamp } from 'firebase/firestore';
+import { formatTimestamp } from '../../utils/form';
 import '../../styles/form.css'; // Ensure CSS path is correct
 
 interface TeamsFormProps {
-  formData: Partial<
-    Team & { createdAt?: Timestamp; updatedAt?: Timestamp }
-  > | null;
+  formData: Partial<Team> | null;
   mode: FormMode;
 }
-
-const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
-  if (timestamp && timestamp instanceof Timestamp) {
-    return timestamp.toDate().toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  }
-  return 'N/A';
-};
 
 function TeamsForm({ formData, mode }: TeamsFormProps) {
   const {
@@ -71,12 +55,12 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
     await deleteItem();
   };
 
-  // This could be moved to a constants file if used elsewhere (e.g. src/constants/teamConstants.ts)
   const teamTypes: Team['type'][] = [
     'Club',
     'Masters',
     'High School',
     'Middle School',
+    'Other',
   ];
 
   return (
@@ -215,7 +199,6 @@ function TeamsForm({ formData, mode }: TeamsFormProps) {
 
         {(formData?.createdAt || formData?.updatedAt) && (
           <section className="form-timestamps">
-            {/* <p className="form-section-title">Details</p> */}
             {formData.createdAt && (
               <p className="timestamp-field">
                 Created: {formatTimestamp(formData.createdAt)}

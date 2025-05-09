@@ -1,25 +1,17 @@
-// src/window/meets/MeetsForm.tsx
-
-import React, { useMemo, useState } from 'react'; // Added useState
+import React, { useMemo, useState, useCallback } from 'react';
 import { useFormContext, FormMode } from '../../form/FormContext';
-import { Meet, Team, Event } from '../../models/index'; // Added Event
-// Hooks
-import { useTeams } from '../teams/useTeams'; // Assuming useTeams fetches all teams needed
-import { useSeasons, SeasonWithTeamInfo } from '../seasons/useSeasons'; // Used to filter seasons based on selected team
-import { useEvents } from '../events/useEvents'; // Import the hook to fetch events (adjust path if needed)
-
+import { Meet, Team, Season, Event } from '../../types/data';
+import { useTeams } from '../teams/useTeams';
+import { useSeasons } from '../seasons/useSeasons';
+import { useEvents } from '../events/useEvents';
 import { Timestamp } from 'firebase/firestore';
-import '../../styles/form.css'; // Ensure CSS path is correct
+import '../../styles/form.css';
 
-// Define the expected props (no change)
 interface MeetsFormProps {
-  formData: Partial<
-    Meet & { createdAt?: Timestamp; updatedAt?: Timestamp }
-  > | null;
+  formData: Partial<Meet> | null;
   mode: FormMode;
 }
 
-// Helper functions (formatTimestamp, boolToString, stringToBool remain the same)
 const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
   if (timestamp && timestamp instanceof Timestamp) {
     return timestamp.toDate().toLocaleString(undefined, {
@@ -33,11 +25,13 @@ const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
   }
   return 'N/A';
 };
+
 const boolToString = (value: boolean | undefined | null): string => {
   if (value === true) return 'true';
   if (value === false) return 'false';
   return '';
 };
+
 const stringToBool = (value: string): boolean | undefined => {
   if (value === 'true') return true;
   if (value === 'false') return false;
@@ -45,7 +39,6 @@ const stringToBool = (value: string): boolean | undefined => {
 };
 
 function MeetsForm({ formData, mode }: MeetsFormProps) {
-  // --- Hooks ---
   const {
     state,
     dispatch,
@@ -56,208 +49,187 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
     revertFormData,
     deleteItem,
   } = useFormContext();
-  const { selectedItem, isSaving, error, formData: currentFormData } = state; // Get current form data from context state directly for filtering
+  const { selectedItem, isSaving, error, formData: currentFormData } = state;
 
-  // Data fetching hooks
-  const { data: teams, isLoading: isLoadingTeams } = useTeams();
-  const { data: allSeasons, isLoading: isLoadingSeasons } = useSeasons();
-  const {
-    data: allEvents,
-    isLoading: isLoadingEvents,
-    error: eventsError,
-  } = useEvents(); // Fetch events
-  console.log('[MeetsForm Debug] Events Hook:', {
-    isLoadingEvents,
-    eventsError,
-    eventCount: allEvents?.length,
-    allEvents,
-  });
+  const { data: teamsData, isLoading: isLoadingTeams } = useTeams();
+  const { data: allSeasonsData, isLoading: isLoadingSeasons } = useSeasons();
+  const { data: allEventsData, isLoading: isLoadingEvents } = useEvents();
 
-  // Local state for the event order section
   const [selectedEventToAdd, setSelectedEventToAdd] = useState<string>('');
-
-  // --- Memos ---
   const isDisabled = mode === 'view' || mode === null || isSaving;
 
-  // Filter seasons based on the currently selected team in the form data
   const availableSeasons = useMemo(() => {
-    if (!allSeasons || !currentFormData?.team) {
-      return []; // Return empty if no seasons loaded or no team selected in form
+    if (!allSeasonsData || !currentFormData?.team) {
+      return [];
     }
-    // Filter the seasons fetched by useSeasons
-    return allSeasons.filter((season) => season.team === currentFormData.team);
-  }, [allSeasons, currentFormData?.team]); // Re-filter when seasons load or form's team changes
-
-  // Create a map for quick event lookup by ID
-  const eventMap = useMemo(() => {
-    if (!allEvents) return new Map<string, Event>();
-    return new Map<string, Event>(
-      allEvents.map((event: Event) => [event.id, event])
+    const currentTeamObj = currentFormData.team as Team | undefined;
+    if (!currentTeamObj?.id) return [];
+    return allSeasonsData.filter(
+      (season) => season.team.id === currentTeamObj.id
     );
-  }, [allEvents]);
+  }, [allSeasonsData, currentFormData?.team]);
 
-  // Get current event order or default to empty array
+  const eventMap = useMemo(() => {
+    if (!allEventsData) return new Map<string, Event>();
+    return new Map<string, Event>(
+      allEventsData.map((event: Event) => [event.id, event])
+    );
+  }, [allEventsData]);
+
   const currentEventOrder: string[] = useMemo(
-    () => currentFormData?.eventOrder ?? [],
+    () => (currentFormData?.eventOrder as string[]) ?? [],
     [currentFormData?.eventOrder]
   );
 
-  // --- Event Handlers ---
+  const handleTextFieldChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value } = e.target;
+      updateFormField(name, value);
+    },
+    [updateFormField]
+  );
 
-  // Generic handler for text/date input changes
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    updateFormField(name, value);
-  };
+  const handleBooleanSelectChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      updateFormField(name, stringToBool(value));
+    },
+    [updateFormField]
+  );
 
-  // Specific handler for MOST select elements (including boolean conversions)
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    let finalValue: any = value;
+  const handleTeamChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const selectedTeamId = event.target.value;
+      const teamObject = teamsData?.find((t) => t.id === selectedTeamId);
 
-    if (['official', 'benchmarks', 'dataComplete'].includes(name)) {
-      finalValue = stringToBool(value);
-    }
-    // DO NOT handle 'team' or 'season' or 'eventToAdd' here - use specific handlers
-    if (name !== 'team' && name !== 'season' && name !== 'eventToAdd') {
-      updateFormField(name, finalValue);
-    }
-  };
-
-  // Handler for TEAM selection change
-  const handleTeamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newTeamId = e.target.value;
-    updateFormField('team', newTeamId);
-
-    // IMPORTANT: If the currently selected season doesn't belong to the new team, clear it
-    const currentSeasonId = currentFormData?.season;
-    if (currentSeasonId) {
-      const seasonBelongsToNewTeam =
-        allSeasons?.find((s) => s.id === currentSeasonId)?.team === newTeamId;
-      if (!seasonBelongsToNewTeam) {
-        console.log(
-          "Clearing season selection as it doesn't belong to the new team."
-        );
-        updateFormField('season', ''); // Clear season selection
+      if (teamObject) {
+        updateFormField('team', teamObject);
+        const currentSeasonObject = currentFormData?.season as
+          | Season
+          | undefined;
+        if (
+          currentSeasonObject &&
+          currentSeasonObject.team.id !== teamObject.id
+        ) {
+          updateFormField('season', null);
+        }
+      } else {
+        updateFormField('team', null);
+        updateFormField('season', null);
       }
-    }
-  };
+    },
+    [teamsData, updateFormField, currentFormData?.season]
+  );
 
-  // Handler for SEASON selection change
-  const handleSeasonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newSeasonId = e.target.value;
-    updateFormField('season', newSeasonId);
-  };
+  const handleSeasonChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const selectedSeasonId = event.target.value;
+      const seasonObject = availableSeasons?.find(
+        (s) => s.id === selectedSeasonId
+      );
+      updateFormField('season', seasonObject ?? null);
+    },
+    [availableSeasons, updateFormField]
+  );
 
-  // --- Event Order Handlers ---
   const handleSelectedEventChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     setSelectedEventToAdd(e.target.value);
   };
 
-  const handleAddEvent = () => {
-    if (!selectedEventToAdd || currentEventOrder.includes(selectedEventToAdd)) {
-      return; // Don't add if nothing selected or already exists
-    }
+  const handleAddEvent = useCallback(() => {
+    if (!selectedEventToAdd || currentEventOrder.includes(selectedEventToAdd))
+      return;
     const newEventOrder = [...currentEventOrder, selectedEventToAdd];
     updateFormField('eventOrder', newEventOrder);
-    setSelectedEventToAdd(''); // Reset dropdown
-  };
+    setSelectedEventToAdd('');
+  }, [currentEventOrder, selectedEventToAdd, updateFormField]);
 
-  const handleRemoveEvent = (indexToRemove: number) => {
-    const newEventOrder = currentEventOrder.filter(
-      (_, index) => index !== indexToRemove
-    );
-    updateFormField('eventOrder', newEventOrder);
-  };
+  const handleRemoveEvent = useCallback(
+    (indexToRemove: number) => {
+      const newEventOrder = currentEventOrder.filter(
+        (_, index) => index !== indexToRemove
+      );
+      updateFormField('eventOrder', newEventOrder);
+    },
+    [currentEventOrder, updateFormField]
+  );
 
-  const handleMoveEvent = (index: number, direction: -1 | 1) => {
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= currentEventOrder.length) {
-      return; // Cannot move outside bounds
-    }
-    const newEventOrder = [...currentEventOrder];
-    // Swap elements: Array destructuring for swap
-    [newEventOrder[index], newEventOrder[newIndex]] = [
-      newEventOrder[newIndex],
-      newEventOrder[index],
-    ];
-    updateFormField('eventOrder', newEventOrder);
-  };
+  const handleMoveEvent = useCallback(
+    (index: number, direction: -1 | 1) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= currentEventOrder.length) return;
+      const newEventOrder = [...currentEventOrder];
+      [newEventOrder[index], newEventOrder[newIndex]] = [
+        newEventOrder[newIndex],
+        newEventOrder[index],
+      ];
+      updateFormField('eventOrder', newEventOrder);
+    },
+    [currentEventOrder, updateFormField]
+  );
 
-  // --- Action Handlers (Edit, Cancel, Delete) ---
-  const handleEditClick = () => {
+  const handleEditClick = useCallback(() => {
     if (selectedItem?.type === 'meet' && selectedItem?.id) {
       selectItemForForm(selectedItem.type, selectedItem.id, 'edit');
     }
-  };
+  }, [selectedItem, selectItemForForm]);
 
-  const handleCancelClick = () => {
+  const handleCancelClick = useCallback(() => {
     if (selectedItem?.mode === 'add') {
       clearForm();
     } else if (selectedItem?.type === 'meet' && selectedItem?.id) {
       revertFormData();
       selectItemForForm(selectedItem.type, selectedItem.id, 'view');
     }
-  };
+  }, [selectedItem, clearForm, revertFormData, selectItemForForm]);
 
-  const handleDeleteClick = async () => {
+  const handleDeleteClick = useCallback(async () => {
     if (isSaving) return;
-    await deleteItem(); // Confirmation is usually handled within deleteItem in context
-  };
+    await deleteItem();
+  }, [isSaving, deleteItem]);
 
-  // --- SAVE Handler ---
-  const handleSaveClick = async () => {
+  const handleSaveClick = useCallback(async () => {
     if (isSaving || !currentFormData) return;
 
-    // Basic Validation: Check required fields
+    const teamObject = currentFormData.team as Team | undefined;
+    const seasonObject = currentFormData.season as Season | undefined;
+
     if (
       !currentFormData.nameShort ||
       !currentFormData.nameLong ||
-      !currentFormData.team ||
-      !currentFormData.season ||
+      !teamObject?.id ||
+      !seasonObject?.id ||
       !currentFormData.date
     ) {
-      // Dispatch error to be shown in the form
       dispatch({
         type: 'SET_ERROR',
         payload:
           'Please fill in all required fields (Short Name, Long Name, Team, Season, Date).',
       });
-      return; // Prevent saving
+      return;
     }
-
-    // Clear any previous errors on successful validation before saving attempt
-    if (error) {
-      dispatch({ type: 'SET_ERROR', payload: null });
-    }
-
-    // The eventOrder field is already up-to-date in the context state
-    // due to handleAddEvent, handleRemoveEvent, handleMoveEvent calling updateFormField.
+    if (error) dispatch({ type: 'SET_ERROR', payload: null });
     await saveForm();
-  };
+  }, [isSaving, currentFormData, saveForm, dispatch, error]);
 
-  // --- Render ---
   return (
     <div className="form">
       <form onSubmit={(e) => e.preventDefault()}>
-        {/* --- Meet Details Section --- */}
         <section>
-          <p>Meet Details</p>
+          <p className="form-section-title">Meet Details</p>
           <div className="field">
             <label htmlFor="nameShort">Short Name</label>
             <input
               type="text"
               id="nameShort"
               name="nameShort"
-              placeholder=""
               value={currentFormData?.nameShort ?? ''}
-              onChange={handleChange}
+              onChange={handleTextFieldChange}
               readOnly={isDisabled}
               required
+              aria-required="true"
             />
           </div>
           <div className="field">
@@ -266,11 +238,11 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               type="text"
               id="nameLong"
               name="nameLong"
-              placeholder=""
               value={currentFormData?.nameLong ?? ''}
-              onChange={handleChange}
+              onChange={handleTextFieldChange}
               readOnly={isDisabled}
               required
+              aria-required="true"
             />
           </div>
           <div className="field">
@@ -278,19 +250,18 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
             <select
               id="team"
               name="team"
-              value={currentFormData?.team ?? ''}
+              value={(currentFormData?.team as Team | undefined)?.id ?? ''}
               onChange={handleTeamChange}
               disabled={isDisabled || isLoadingTeams}
               required
+              aria-required="true"
             >
               <option value="" disabled>
-                {' '}
-                {isLoadingTeams ? 'Loading...' : ''}{' '}
+                {isLoadingTeams ? 'Loading teams...' : 'Select a Team'}
               </option>
-              {teams?.map((team: Team) => (
+              {teamsData?.map((team: Team) => (
                 <option key={team.id} value={team.id}>
-                  {' '}
-                  {team.code} - {team.nameShort}{' '}
+                  {team.code} - {team.nameShort}
                 </option>
               ))}
             </select>
@@ -300,34 +271,34 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
             <select
               id="season"
               name="season"
-              value={currentFormData?.season ?? ''}
+              value={(currentFormData?.season as Season | undefined)?.id ?? ''}
               onChange={handleSeasonChange}
               disabled={
-                !currentFormData?.team || isDisabled || isLoadingSeasons
+                !(currentFormData?.team as Team | undefined)?.id ||
+                isDisabled ||
+                isLoadingSeasons
               }
               required
+              aria-required="true"
             >
               <option value="" disabled>
-                {' '}
                 {isLoadingSeasons
-                  ? 'Loading...'
-                  : currentFormData?.team
-                    ? ''
-                    : 'Select Team'}{' '}
+                  ? 'Loading seasons...'
+                  : (currentFormData?.team as Team | undefined)?.id
+                    ? 'Select a Season'
+                    : 'Select Team First'}
               </option>
-              {availableSeasons.map((season: SeasonWithTeamInfo) => (
+              {availableSeasons.map((season: Season) => (
                 <option key={season.id} value={season.id}>
-                  {' '}
-                  {season.season ?? ''} {season.year ?? ''}{' '}
+                  {season.quarter ?? ''} {season.year ?? ''}
                 </option>
               ))}
             </select>
           </div>
         </section>
 
-        {/* --- Date & Location Section --- */}
         <section>
-          <p>Date & Location</p>
+          <p className="form-section-title">Date & Location</p>
           <div className="field">
             <label htmlFor="date">Date</label>
             <input
@@ -335,9 +306,10 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               id="date"
               name="date"
               value={currentFormData?.date ?? ''}
-              onChange={handleChange}
+              onChange={handleTextFieldChange}
               readOnly={isDisabled}
               required
+              aria-required="true"
             />
           </div>
           <div className="field">
@@ -346,9 +318,8 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               type="text"
               id="location"
               name="location"
-              placeholder=""
               value={currentFormData?.location ?? ''}
-              onChange={handleChange}
+              onChange={handleTextFieldChange}
               readOnly={isDisabled}
             />
           </div>
@@ -358,17 +329,15 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               type="text"
               id="address"
               name="address"
-              placeholder=""
               value={currentFormData?.address ?? ''}
-              onChange={handleChange}
+              onChange={handleTextFieldChange}
               readOnly={isDisabled}
             />
           </div>
         </section>
 
-        {/* === Event Order Section === */}
         <section>
-          <p>Event Order</p>
+          <p className="form-section-title">Event Order</p>
           <div className="add-event-control field">
             <select
               id="eventToAdd"
@@ -378,10 +347,9 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               disabled={isDisabled || isLoadingEvents}
             >
               <option value="" disabled>
-                {' '}
-                {isLoadingEvents ? 'Loading...' : ''}{' '}
+                {isLoadingEvents ? 'Loading events...' : 'Select an Event'}
               </option>
-              {allEvents?.map((event: Event) => (
+              {allEventsData?.map((event: Event) => (
                 <option
                   key={event.id}
                   value={event.id}
@@ -401,11 +369,9 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
                 isDisabled
               }
             >
-              {' '}
-              Add{' '}
+              Add
             </button>
           </div>
-
           <ol className="event-order-list">
             {currentEventOrder.length === 0 && !isDisabled && (
               <li className="empty-message">No events added yet.</li>
@@ -414,7 +380,6 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               const event = eventMap.get(eventId);
               const canMoveUp = index > 0;
               const canMoveDown = index < currentEventOrder.length - 1;
-
               return (
                 <li key={`${eventId}-${index}`} className="event-order-item">
                   <span className="event-order-number">{index + 1}.</span>
@@ -431,8 +396,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
                       disabled={!canMoveUp || isDisabled}
                       aria-label="Move event up"
                     >
-                      {' '}
-                      &uarr;{' '}
+                      &uarr;
                     </button>
                     <button
                       type="button"
@@ -441,8 +405,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
                       disabled={!canMoveDown || isDisabled}
                       aria-label="Move event down"
                     >
-                      {' '}
-                      &darr;{' '}
+                      &darr;
                     </button>
                     <button
                       type="button"
@@ -451,8 +414,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
                       disabled={isDisabled}
                       aria-label="Remove event"
                     >
-                      {' '}
-                      &times;{' '}
+                      &times;
                     </button>
                   </span>
                 </li>
@@ -461,20 +423,19 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
           </ol>
         </section>
 
-        {/* --- Settings & Status Section --- */}
         <section>
-          <p>Settings & Status</p>
+          <p className="form-section-title">Settings & Status</p>
           <div className="field">
             <label htmlFor="official">Official Meet?</label>
             <select
               id="official"
               name="official"
               value={boolToString(currentFormData?.official)}
-              onChange={handleSelectChange}
+              onChange={handleBooleanSelectChange}
               disabled={isDisabled}
             >
-              <option value="" disabled></option>{' '}
-              <option value="true">Yes</option>{' '}
+              <option value="" disabled></option>
+              <option value="true">Yes</option>
               <option value="false">No</option>
             </select>
           </div>
@@ -484,11 +445,11 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               id="benchmarks"
               name="benchmarks"
               value={boolToString(currentFormData?.benchmarks)}
-              onChange={handleSelectChange}
+              onChange={handleBooleanSelectChange}
               disabled={isDisabled}
             >
-              <option value="" disabled></option>{' '}
-              <option value="true">Yes</option>{' '}
+              <option value="" disabled></option>
+              <option value="true">Yes</option>
               <option value="false">No</option>
             </select>
           </div>
@@ -498,25 +459,23 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               id="dataComplete"
               name="dataComplete"
               value={boolToString(currentFormData?.dataComplete)}
-              onChange={handleSelectChange}
+              onChange={handleBooleanSelectChange}
               disabled={isDisabled}
             >
-              <option value="" disabled></option>{' '}
-              <option value="true">Yes</option>{' '}
+              <option value="" disabled></option>
+              <option value="true">Yes</option>
               <option value="false">No</option>
             </select>
           </div>
         </section>
 
-        {/* --- Action Buttons Section --- */}
         <section>
-          <p>Actions</p>
+          <p className="form-section-title">Actions</p>
           {error && <div className="form-message error">{error}</div>}
           <div className="buttons">
             {mode === 'view' && selectedItem?.id && (
               <button type="button" onClick={handleEditClick}>
-                {' '}
-                Edit{' '}
+                Edit
               </button>
             )}
             {(mode === 'edit' || mode === 'add') && (
@@ -525,17 +484,16 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
                   type="button"
                   onClick={handleSaveClick}
                   disabled={isSaving}
+                  className="primary"
                 >
-                  {' '}
-                  {isSaving ? 'Saving...' : 'Save'}{' '}
+                  {isSaving ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelClick}
                   disabled={isSaving}
                 >
-                  {' '}
-                  Cancel{' '}
+                  Cancel
                 </button>
               </>
             )}
@@ -546,21 +504,23 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
                 disabled={isSaving}
                 className="delete"
               >
-                {' '}
-                {isSaving ? 'Deleting...' : 'Delete'}{' '}
+                {isSaving ? 'Deleting...' : 'Delete'}
               </button>
             )}
           </div>
         </section>
 
-        {/* --- Timestamps Section --- */}
         {(currentFormData?.createdAt || currentFormData?.updatedAt) && (
           <section className="form-timestamps">
             {currentFormData.createdAt && (
-              <p>Created: {formatTimestamp(currentFormData.createdAt)}</p>
+              <p className="timestamp-field">
+                Created: {formatTimestamp(currentFormData.createdAt)}
+              </p>
             )}
             {currentFormData.updatedAt && (
-              <p>Updated: {formatTimestamp(currentFormData.updatedAt)}</p>
+              <p className="timestamp-field">
+                Updated: {formatTimestamp(currentFormData.updatedAt)}
+              </p>
             )}
           </section>
         )}

@@ -163,7 +163,7 @@ function TeamsWindow() {
   return (
     <div className="window">
       <div className="row">
-        <p>Teams ({sortedTeams?.length ?? 0})</p>
+        <p>Teams ({sortedTeams.length})</p>
         <div className="buttons">
           <button onClick={handleAddClick}>Add</button>
           <button onClick={handleClearClick} disabled={!isAnySelectionActive}>

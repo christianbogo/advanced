@@ -1,19 +1,9 @@
-// src/window/events/EventsForm.tsx
-
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useFormContext, FormMode } from '../../form/FormContext';
-import { Event } from '../../models/index';
+import { Event } from '../../types/data';
 import { Timestamp } from 'firebase/firestore';
-import '../../styles/form.css'; // Ensure CSS path is correct
+import '../../styles/form.css';
 
-interface EventsFormProps {
-  formData: Partial<
-    Event & { createdAt?: Timestamp; updatedAt?: Timestamp }
-  > | null;
-  mode: FormMode;
-}
-
-// Helper function to format Firestore Timestamps (can be moved to a utils file)
 const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
   if (timestamp && timestamp instanceof Timestamp) {
     return timestamp.toDate().toLocaleString(undefined, {
@@ -28,90 +18,80 @@ const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
   return 'N/A';
 };
 
-// Options for dropdowns
-const courseOptions: Event['course'][] = ['SCY', 'LCM', 'Other'];
-const strokeOptions: Event['stroke'][] = [
-  'Medley',
-  'Fly',
-  'Back',
-  'Breast',
-  'Free',
+interface EventsFormProps {
+  formData: Partial<Event> | null;
+  mode: FormMode;
+}
+
+// Review these options based on your specific needs
+const courseOptions: string[] = ['SCY', 'LCM', 'SCM', 'Other'];
+const strokeOptions: string[] = [
+  'FR',
+  'FL',
+  'BK',
+  'BR',
+  'IM',
   'Free Relay',
   'Medley Relay',
   'Other',
 ];
 const booleanOptions = [
-  { label: 'Official', value: 'true' },
-  { label: 'Unofficial', value: 'false' },
+  { label: 'Yes', value: 'true' },
+  { label: 'No', value: 'false' },
 ];
 
 function EventsForm({ formData, mode }: EventsFormProps) {
   const {
     state,
+    dispatch,
     updateFormField,
     selectItemForForm,
     saveForm,
     clearForm,
     revertFormData,
     deleteItem,
-    dispatch, // <<< Added dispatch for setting errors locally
   } = useFormContext();
   const { selectedItem, isSaving, error } = state;
 
   const isDisabled = mode === 'view' || mode === null || isSaving;
 
-  // --- Event Handlers ---
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    const { name, value, type } = e.target;
+  const handleChange = useCallback(
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >
+    ) => {
+      const { name, value } = e.target;
+      let processedValue: any = value;
+      if (name === 'distance') {
+        processedValue = value === '' ? null : Number(value);
+      } else if (['hs', 'ms', 'U14', 'O15'].includes(name)) {
+        processedValue = value === 'true';
+      }
+      updateFormField(name, processedValue);
+    },
+    [updateFormField]
+  );
 
-    let processedValue: any = value;
-
-    // Handle checkbox type explicitly if needed in future, but dropdown used here
-    // if (type === 'checkbox') {
-    //   processedValue = (e.target as HTMLInputElement).checked;
-    // }
-
-    // Handle number conversion for distance
-    if (name === 'distance') {
-      processedValue = value === '' ? null : Number(value); // Store as number or null if empty
-    }
-
-    // Handle boolean conversion for dropdowns
-    if (['hs', 'ms', 'U14', 'O15'].includes(name)) {
-      processedValue = value === 'true'; // Convert "true"/"false" string to boolean
-    }
-
-    updateFormField(name, processedValue);
-  };
-
-  const handleEditClick = () => {
-    if (selectedItem?.type && selectedItem?.id) {
+  const handleEditClick = useCallback(() => {
+    if (selectedItem?.type === 'event' && selectedItem?.id) {
       selectItemForForm(selectedItem.type, selectedItem.id, 'edit');
     }
-  };
+  }, [selectedItem, selectItemForForm]);
 
-  const handleCancelClick = () => {
+  const handleCancelClick = useCallback(() => {
     if (selectedItem?.mode === 'add') {
       clearForm();
-    } else if (selectedItem?.type && selectedItem?.id) {
-      revertFormData(); // Revert changes in context state
-      // No need to call selectItemForForm again, revertFormData keeps the item selected
-      // Just ensure the mode is reset if necessary, which SAVE_SUCCESS/DELETE_SUCCESS/clearForm do
-      // We might need to explicitly switch back to view mode if revert is called standalone
-      selectItemForForm(selectedItem.type, selectedItem.id, 'view'); // Switch back to view explicitly
+    } else if (selectedItem?.type === 'event' && selectedItem?.id) {
+      revertFormData();
+      selectItemForForm(selectedItem.type, selectedItem.id, 'view');
     } else {
-      clearForm(); // Fallback if state is somehow inconsistent
+      clearForm(); // Fallback
     }
-  };
+  }, [selectedItem, clearForm, revertFormData, selectItemForForm]);
 
-  // --- Validation Logic ---
-  const validateForm = (): boolean => {
-    if (!formData) return false; // Should not happen if saving
-
+  const validateForm = useCallback((): boolean => {
+    if (!formData) return false;
     const requiredFields: (keyof Event)[] = [
       'code',
       'nameShort',
@@ -121,7 +101,6 @@ function EventsForm({ formData, mode }: EventsFormProps) {
       'stroke',
     ];
     for (const field of requiredFields) {
-      // Check for null, undefined, or empty string (and distance <= 0)
       const value = formData[field];
       if (value === null || value === undefined || value === '') {
         dispatch({
@@ -138,11 +117,9 @@ function EventsForm({ formData, mode }: EventsFormProps) {
         return false;
       }
     }
-
-    // Specific distance validation
     if (
       formData.distance &&
-      (formData.distance <= 0 || formData.distance % 25 !== 0)
+      (formData.distance <= 0 || !Number.isInteger(formData.distance / 25))
     ) {
       dispatch({
         type: 'SET_ERROR',
@@ -150,23 +127,19 @@ function EventsForm({ formData, mode }: EventsFormProps) {
       });
       return false;
     }
-
-    // If all checks pass
-    dispatch({ type: 'SET_ERROR', payload: null }); // Clear any previous validation errors
+    if (error) dispatch({ type: 'SET_ERROR', payload: null });
     return true;
-  };
+  }, [formData, dispatch, error]);
 
-  const handleSaveClick = async () => {
+  const handleSaveClick = useCallback(async () => {
     if (isSaving) return;
     if (validateForm()) {
-      await saveForm(); // Call context's save function
+      await saveForm();
     }
-    // If validation fails, the error is set in validateForm via dispatch
-  };
+  }, [isSaving, validateForm, saveForm]);
 
-  const handleDeleteClick = async () => {
+  const handleDeleteClick = useCallback(async () => {
     if (isSaving) return;
-    // Add confirmation specific to the item being deleted
     const eventIdentifier =
       formData?.code || formData?.nameShort || selectedItem?.id || 'this event';
     if (
@@ -174,17 +147,15 @@ function EventsForm({ formData, mode }: EventsFormProps) {
         `Are you sure you want to delete ${eventIdentifier}? This action cannot be undone.`
       )
     ) {
-      await deleteItem(); // Call context's delete function
+      await deleteItem();
     }
-  };
+  }, [isSaving, formData, selectedItem, deleteItem]);
 
-  // --- Render ---
   return (
     <div className="form">
       <form onSubmit={(e) => e.preventDefault()}>
-        {/* --- Identification Section --- */}
         <section>
-          <p>Identification</p>
+          <p className="form-section-title">Identification</p>
           <div className="field">
             <label htmlFor="code">Event Code</label>
             <input
@@ -226,9 +197,8 @@ function EventsForm({ formData, mode }: EventsFormProps) {
           </div>
         </section>
 
-        {/* --- Details Section --- */}
         <section>
-          <p>Details</p>
+          <p className="form-section-title">Details</p>
           <div className="field">
             <label htmlFor="course">Course</label>
             <select
@@ -262,7 +232,7 @@ function EventsForm({ formData, mode }: EventsFormProps) {
               required
               aria-required="true"
               step="25"
-              min="25" // Basic HTML5 validation hint
+              min="25"
             />
           </div>
           <div className="field">
@@ -288,24 +258,20 @@ function EventsForm({ formData, mode }: EventsFormProps) {
           </div>
         </section>
 
-        {/* --- Classifications Section --- */}
         <section>
-          <p>Classifications</p>
-          {/* Map boolean fields to dropdowns */}
+          <p className="form-section-title">Classifications</p>
           {(['hs', 'ms', 'U14', 'O15'] as const).map((fieldName) => (
             <div className="field" key={fieldName}>
               <label htmlFor={fieldName}>
-                {/* Simple label generation */}
-                {fieldName === 'hs' && 'High School'}
-                {fieldName === 'ms' && 'Middle School'}
-                {fieldName === 'U14' && 'Club U14'}
-                {fieldName === 'O15' && 'Club O15'}
+                {fieldName === 'hs' && 'High School Event?'}
+                {fieldName === 'ms' && 'Middle School Event?'}
+                {fieldName === 'U14' && 'Club U14 Event?'}
+                {fieldName === 'O15' && 'Club O15 Event?'}
               </label>
               <select
                 id={fieldName}
                 name={fieldName}
-                // Convert boolean value to string 'true'/'false' for select value
-                value={String(formData?.[fieldName] ?? false)} // Default to false if undefined
+                value={String(formData?.[fieldName] ?? false)}
                 onChange={handleChange}
                 disabled={isDisabled}
               >
@@ -319,16 +285,10 @@ function EventsForm({ formData, mode }: EventsFormProps) {
           ))}
         </section>
 
-        {/* --- Action Buttons Section --- */}
         <section>
-          <p>Actions</p>
-          {/* Display validation or save/load errors from context */}
+          <p className="form-section-title">Actions</p>
           {error && <div className="form-message error">{error}</div>}
-          {/* Display Saving message */}
-          {isSaving && <div className="form-message">Processing...</div>}
-
           <div className="buttons">
-            {/* Edit Button (View Mode) */}
             {mode === 'view' && selectedItem?.id && (
               <button
                 type="button"
@@ -338,13 +298,13 @@ function EventsForm({ formData, mode }: EventsFormProps) {
                 Edit
               </button>
             )}
-            {/* Save/Cancel Buttons (Edit/Add Mode) */}
             {(mode === 'edit' || mode === 'add') && (
               <>
                 <button
                   type="button"
                   onClick={handleSaveClick}
                   disabled={isSaving}
+                  className="primary"
                 >
                   {isSaving ? 'Saving...' : 'Save'}
                 </button>
@@ -357,19 +317,16 @@ function EventsForm({ formData, mode }: EventsFormProps) {
                 </button>
               </>
             )}
-            {/* Delete Button (Edit Mode) */}
             {mode === 'edit' && selectedItem?.id && (
               <button
                 type="button"
                 onClick={handleDeleteClick}
                 disabled={isSaving}
-                className="delete" // Add class for styling delete button
+                className="delete"
               >
-                {/* No need for 'Deleting...' text change as isSaving covers the state */}
                 Delete
               </button>
             )}
-            {/* Delete Button (Also available in View Mode for consistency?) */}
             {mode === 'view' && selectedItem?.id && (
               <button
                 type="button"
@@ -383,14 +340,17 @@ function EventsForm({ formData, mode }: EventsFormProps) {
           </div>
         </section>
 
-        {/* --- Timestamps Section --- */}
         {(formData?.createdAt || formData?.updatedAt) && mode !== 'add' && (
           <section className="form-timestamps">
             {formData.createdAt && (
-              <p>Created: {formatTimestamp(formData.createdAt)}</p>
+              <p className="timestamp-field">
+                Created: {formatTimestamp(formData.createdAt)}
+              </p>
             )}
             {formData.updatedAt && (
-              <p>Updated: {formatTimestamp(formData.updatedAt)}</p>
+              <p className="timestamp-field">
+                Updated: {formatTimestamp(formData.updatedAt)}
+              </p>
             )}
           </section>
         )}
