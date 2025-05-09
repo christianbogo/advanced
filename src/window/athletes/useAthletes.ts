@@ -21,21 +21,22 @@ const fetchAthletes = async (
   const athletesQueryConstraints: QueryConstraint[] = [
     orderBy('createdAt', 'desc'),
   ];
+
   if (superSelectedSeasonIds.length > 0) {
     athletesQueryConstraints.unshift(
       where('season.id', 'in', superSelectedSeasonIds)
     );
   } else if (superSelectedTeamIds.length > 0) {
     athletesQueryConstraints.unshift(
-      where('team.id', 'in', superSelectedTeamIds)
+      where('season.team.id', 'in', superSelectedTeamIds)
     );
   }
 
-  const athletesQuery = query(
+  const athletesQueryInstance = query(
     athletesCollectionRef,
     ...athletesQueryConstraints
   );
-  const athletesSnapshot = await getDocs(athletesQuery);
+  const athletesSnapshot = await getDocs(athletesQueryInstance);
 
   const athletes: Athlete[] = athletesSnapshot.docs.map((doc) => ({
     id: doc.id,

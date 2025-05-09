@@ -3,11 +3,11 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useFormContext, FormMode } from '../../form/FormContext';
 import { useFilterContext } from '../../filter/FilterContext';
-import { Athlete, Person, Team, Season } from '../../types/data';
+import { Athlete, Person, Season, Team } from '../../types/data'; // Team is needed for type hints
 import { Timestamp } from 'firebase/firestore';
 import { useTeams } from '../teams/useTeams';
 import { useSeasons } from '../seasons/useSeasons';
-import PersonSelectorModal from '../persons/PersonSelectorModal'; // Assuming path is correct
+import PersonSelectorModal from '../persons/PersonSelectorModal';
 import '../../styles/form.css';
 
 const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
@@ -26,11 +26,14 @@ const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
 };
 
 interface AthletesFormProps {
-  formData: Partial<Athlete> | null; // Simplified
+  formData: Partial<Athlete> | null; // This is initialFormData from the parent
   mode: FormMode;
 }
 
-function AthletesForm({ formData, mode }: AthletesFormProps) {
+function AthletesForm({
+  formData: initialFormDataProp,
+  mode,
+}: AthletesFormProps) {
   const {
     state,
     dispatch,
@@ -41,23 +44,26 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
     revertFormData,
     deleteItem,
   } = useFormContext();
-  const { selectedItem, isSaving, error, formData: currentFormData } = state;
+  const { selectedItem, isSaving, error, formData: currentFormData } = state; // Use currentFormData from context
   const { state: filterState } = useFilterContext();
 
   const [isPersonModalOpen, setIsPersonModalOpen] = useState(false);
+  const [selectedTeamIdForFilter, setSelectedTeamIdForFilter] =
+    useState<string>(''); // Local state for team dropdown
 
-  const { data: teamsData, isLoading: isLoadingTeams } = useTeams();
+  const { data: teamsData, isLoading: isLoadingTeams } = useTeams(); // Still need all teams for the dropdown
   const { data: allSeasonsData, isLoading: isLoadingSeasons } = useSeasons();
 
   const isDisabled = mode === 'view' || mode === null || isSaving;
 
   const availableSeasons = useMemo(() => {
-    const currentTeam = currentFormData?.team as Team | undefined;
-    if (!allSeasonsData || !currentTeam?.id) {
+    if (!allSeasonsData || !selectedTeamIdForFilter) {
       return [];
     }
-    return allSeasonsData.filter((season) => season.team.id === currentTeam.id);
-  }, [allSeasonsData, currentFormData?.team]);
+    return allSeasonsData.filter(
+      (season) => season.team.id === selectedTeamIdForFilter
+    );
+  }, [allSeasonsData, selectedTeamIdForFilter]);
 
   const selectedPersonName = useMemo(() => {
     const person = currentFormData?.person as Person | undefined;
@@ -69,12 +75,35 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
     );
   }, [currentFormData?.person]);
 
+  // Effect to initialize selectedTeamIdForFilter when form mode changes or initial data (Athlete's season) is loaded
   useEffect(() => {
-    // Pre-select team/season in 'add' mode based on filter context
+    if (mode === 'edit' || mode === 'view') {
+      const currentAthleteSeason = currentFormData?.season as
+        | Season
+        | undefined;
+      if (currentAthleteSeason?.team?.id) {
+        setSelectedTeamIdForFilter(currentAthleteSeason.team.id);
+      } else {
+        setSelectedTeamIdForFilter('');
+      }
+    } else if (mode === 'add') {
+      // For 'add' mode, if not set by pre-selection logic below, ensure it's cleared.
+      // This handles cases like navigating back to an "add" form that might have stale filter state.
+      if (!selectedTeamIdForFilter && !currentFormData?.season) {
+        // Only clear if nothing indicates a team/season yet
+        setSelectedTeamIdForFilter('');
+      }
+    }
+  }, [mode, currentFormData?.season]);
+
+  // Effect for pre-selecting team filter and/or athlete's season in 'add' mode
+  useEffect(() => {
     if (
       mode === 'add' &&
-      !currentFormData?.team &&
+      // Only attempt pre-selection if athlete's season isn't set AND team filter isn't set by other means.
+      // This prevents overriding user actions or previous pre-selection for the same "add instance".
       !currentFormData?.season &&
+      !selectedTeamIdForFilter &&
       teamsData &&
       allSeasonsData
     ) {
@@ -82,24 +111,21 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
         filterState.superSelected;
 
       if (superSelectedSeasonIds.length === 1) {
-        const selectedSeasonId = superSelectedSeasonIds[0];
-        const seasonObject = allSeasonsData.find(
-          (s) => s.id === selectedSeasonId
-        );
-        if (seasonObject?.team) {
-          // Ensure season and its embedded team are found
-          updateFormField('season', seasonObject);
-          updateFormField('team', seasonObject.team); // Use the embedded team object
+        const seasonId = superSelectedSeasonIds[0];
+        const seasonObject = allSeasonsData.find((s) => s.id === seasonId);
+        if (seasonObject?.team?.id) {
+          updateFormField('season', seasonObject); // Set the actual season on the Athlete
+          setSelectedTeamIdForFilter(seasonObject.team.id); // Set the team dropdown filter
         }
       } else if (superSelectedTeamIds.length === 1) {
-        const selectedTeamId = superSelectedTeamIds[0];
-        const teamObject = teamsData.find((t) => t.id === selectedTeamId);
+        const teamId = superSelectedTeamIds[0];
+        const teamObject = teamsData.find((t) => t.id === teamId);
         if (teamObject) {
-          updateFormField('team', teamObject); // Store the team object
+          setSelectedTeamIdForFilter(teamObject.id); // Only set the team dropdown filter
+          // Do not set currentFormData.team for the athlete
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     mode,
     filterState.superSelected.season,
@@ -107,47 +133,38 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
     allSeasonsData,
     teamsData,
     updateFormField,
-    currentFormData?.team,
-    currentFormData?.season,
+    currentFormData?.season, // Dependency to ensure it doesn't run if season gets set
+    selectedTeamIdForFilter, // Dependency to ensure it doesn't run if filter gets set
   ]);
 
   const handleGenericFieldChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateFormField(e.target.name, e.target.value);
+      updateFormField(e.target.name as keyof Athlete, e.target.value);
     },
     [updateFormField]
   );
 
   const handleTeamChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedTeamId = event.target.value;
-      const teamObject = teamsData?.find((t) => t.id === selectedTeamId);
-      if (teamObject) {
-        updateFormField('team', teamObject);
-        const currentSeasonObject = currentFormData?.season as
-          | Season
-          | undefined;
-        if (
-          currentSeasonObject &&
-          currentSeasonObject.team.id !== teamObject.id
-        ) {
-          updateFormField('season', null);
-        }
-      } else {
-        updateFormField('team', null);
-        updateFormField('season', null);
+      const newTeamId = event.target.value;
+      setSelectedTeamIdForFilter(newTeamId);
+
+      const currentSeasonObject = currentFormData?.season as Season | undefined;
+      if (currentSeasonObject && currentSeasonObject.team.id !== newTeamId) {
+        updateFormField('season', null); // Clear athlete's season if team filter changes and mismatches
       }
     },
-    [teamsData, updateFormField, currentFormData?.season]
+    [currentFormData?.season, updateFormField]
   );
 
   const handleSeasonChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       const selectedSeasonId = event.target.value;
+      // availableSeasons is already filtered by selectedTeamIdForFilter
       const seasonObject = availableSeasons?.find(
         (s) => s.id === selectedSeasonId
       );
-      updateFormField('season', seasonObject ?? null);
+      updateFormField('season', seasonObject ?? null); // Set the actual season on the Athlete
     },
     [availableSeasons, updateFormField]
   );
@@ -163,7 +180,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
 
   const handlePersonSelect = useCallback(
     (selectedPerson: Person) => {
-      updateFormField('person', selectedPerson); // Store the full Person object
+      updateFormField('person', selectedPerson);
       setIsPersonModalOpen(false);
     },
     [updateFormField]
@@ -171,7 +188,6 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
 
   const handleTriggerAddNewPerson = useCallback(() => {
     selectItemForForm('person', null, 'add');
-    // Keep the Athlete form open; context/viewport handles potential focus shift
   }, [selectItemForForm]);
 
   const handleEditClick = useCallback(() => {
@@ -182,7 +198,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
 
   const handleCancelClick = useCallback(() => {
     if (selectedItem?.mode === 'add') {
-      clearForm();
+      clearForm(); // This should also clear selectedTeamIdForFilter via the useEffect for mode 'add'
     } else if (selectedItem?.type === 'athlete' && selectedItem?.id) {
       revertFormData();
       selectItemForForm(selectedItem.type, selectedItem.id, 'view');
@@ -196,19 +212,30 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
 
   const handleSaveClick = useCallback(async () => {
     if (isSaving || !currentFormData) return;
-    const teamObject = currentFormData.team as Team | undefined;
     const seasonObject = currentFormData.season as Season | undefined;
     const personObject = currentFormData.person as Person | undefined;
 
-    // Validate that embedded objects have been selected
-    if (!personObject?.id || !teamObject?.id || !seasonObject?.id) {
+    if (!personObject?.id || !seasonObject?.id) {
       dispatch({
         type: 'SET_ERROR',
-        payload: 'A Person, Team, and Season must be selected.',
+        payload: 'A Person and Season must be selected.',
       });
       return;
     }
+    // Ensure the season object itself has valid team information, as this is crucial
+    if (!seasonObject.team?.id) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload:
+          'The selected Season does not have associated Team information. Please re-select the Season.',
+      });
+      return;
+    }
+
     if (error) dispatch({ type: 'SET_ERROR', payload: null });
+
+    // The currentFormData sent to saveForm should now correctly represent the new Athlete structure
+    // (i.e., no direct 'team' field, team info is within 'season')
     await saveForm();
   }, [isSaving, currentFormData, saveForm, dispatch, error]);
 
@@ -217,6 +244,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
       <form onSubmit={(e) => e.preventDefault()}>
         <section>
           <p className="form-section-title">Person</p>
+          {/* ... Person selection UI ... */}
           <div className="field person-selection-field">
             <label htmlFor="personDisplay">Selected Person</label>
             <div className="person-display-container">
@@ -252,14 +280,15 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
         <section>
           <p className="form-section-title">Team & Season Assignment</p>
           <div className="field">
-            <label htmlFor="team">Team</label>
+            <label htmlFor="teamFilter">Team</label>{' '}
+            {/* Changed id for clarity */}
             <select
-              id="team"
-              name="team"
-              value={(currentFormData?.team as Team | undefined)?.id ?? ''}
+              id="teamFilter" // Changed id
+              name="teamFilter" // Changed name
+              value={selectedTeamIdForFilter} // MODIFIED: Use local state for value
               onChange={handleTeamChange}
               disabled={isDisabled || isLoadingTeams}
-              required
+              required // Keep required for UX flow, even if not saved on Athlete
               aria-required="true"
             >
               <option value="" disabled>
@@ -276,11 +305,11 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
             <label htmlFor="season">Season</label>
             <select
               id="season"
-              name="season"
+              name="season" // This name matches the Athlete field 'season'
               value={(currentFormData?.season as Season | undefined)?.id ?? ''}
               onChange={handleSeasonChange}
               disabled={
-                !(currentFormData?.team as Team | undefined)?.id ||
+                !selectedTeamIdForFilter || // MODIFIED: Disable if no team filter selected
                 isDisabled ||
                 isLoadingSeasons
               }
@@ -290,7 +319,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
               <option value="" disabled>
                 {isLoadingSeasons
                   ? 'Loading Seasons...'
-                  : !(currentFormData?.team as Team | undefined)?.id
+                  : !selectedTeamIdForFilter // MODIFIED
                     ? 'Select Team First'
                     : '-- Select Season --'}
               </option>
@@ -303,8 +332,10 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
           </div>
         </section>
 
+        {/* ... Athlete Details, Actions, Timestamps sections ... */}
         <section>
           <p className="form-section-title">Athlete Details (Optional)</p>
+          {/* ... grade, group, subgroup, lane fields ... */}
           <div className="field">
             <label htmlFor="grade">Grade</label>
             <input
@@ -354,6 +385,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
         <section>
           <p className="form-section-title">Actions</p>
           {error && <div className="form-message error">{error}</div>}
+          {/* ... buttons ... */}
           <div className="buttons">
             {mode === 'view' && selectedItem?.id && (
               <button type="button" onClick={handleEditClick}>
@@ -368,8 +400,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
                   disabled={isSaving}
                   className="primary"
                 >
-                  {' '}
-                  {isSaving ? 'Saving...' : 'Save'}{' '}
+                  {isSaving ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   type="button"
@@ -387,8 +418,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
                 disabled={isSaving}
                 className="delete"
               >
-                {' '}
-                {isSaving ? 'Deleting...' : 'Delete'}{' '}
+                {isSaving ? 'Deleting...' : 'Delete'}
               </button>
             )}
           </div>
@@ -396,6 +426,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
 
         {(currentFormData?.createdAt || currentFormData?.updatedAt) && (
           <section className="form-timestamps">
+            {/* ... timestamps ... */}
             {currentFormData.createdAt && (
               <p className="timestamp-field">
                 Created: {formatTimestamp(currentFormData.createdAt)}

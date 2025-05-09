@@ -1,11 +1,11 @@
 // src/window/athletes/AthletesWindow.tsx
 
 import React, { useState, useMemo } from 'react';
-import { useAthletes } from './useAthletes'; // Use the refactored hook
-import { Athlete } from '../../types/data'; // Use the base Athlete type
+import { useAthletes } from './useAthletes';
+import { Athlete } from '../../types/data';
 import { useFilterContext } from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
-import { getAgeGenderString } from '../../utils/age'; // Assuming path is correct
+import { getAgeGenderString } from '../../utils/age';
 import '../../styles/window.css';
 
 type AthleteNameDisplayType = 'firstNameLastName' | 'lastNameFirstName';
@@ -24,7 +24,7 @@ function AthletesWindow() {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { data: athletes, isLoading, isError, error } = useAthletes(); // athletes is now Athlete[]
+  const { data: athletes, isLoading, isError, error } = useAthletes();
 
   const {
     state: filterState,
@@ -99,8 +99,8 @@ function AthletesWindow() {
           compareResult = String(valA ?? '').localeCompare(String(valB ?? ''));
           break;
         case 'teamCode':
-          valA = a.team?.code;
-          valB = b.team?.code;
+          valA = a.season?.team?.code; // MODIFIED
+          valB = b.season?.team?.code; // MODIFIED
           compareResult = String(valA ?? '').localeCompare(String(valB ?? ''));
           break;
         case 'season':
@@ -158,7 +158,7 @@ function AthletesWindow() {
       case 'group':
         return athlete.group ?? '-';
       case 'teamCode':
-        return athlete.team?.code ?? '-';
+        return athlete.season?.team?.code ?? '-'; // MODIFIED
       case 'season':
         return `${athlete.season?.quarter ?? '?'} ${athlete.season?.year ?? '?'}`;
       case 'none':
@@ -276,7 +276,6 @@ function AthletesWindow() {
             let isFaded = false;
             let isClickable = true;
             if (hasAnySeasonSelected && !hasAnySeasonSuperSelected) {
-              // Fade if season selected but this athlete's season doesn't match
               if (
                 !athlete.season ||
                 !selectedSeasonIds.includes(athlete.season.id)
@@ -289,8 +288,10 @@ function AthletesWindow() {
               !hasAnyTeamSuperSelected &&
               !hasAnySeasonSuperSelected
             ) {
-              // Fade if team selected (and no season selected) but this athlete's team doesn't match
-              if (!athlete.team || !selectedTeamIds.includes(athlete.team.id)) {
+              if (
+                !athlete.season?.team || // MODIFIED
+                !selectedTeamIds.includes(athlete.season.team.id) // MODIFIED
+              ) {
                 isFaded = true;
                 isClickable = false;
               }

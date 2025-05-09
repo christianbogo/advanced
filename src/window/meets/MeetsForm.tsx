@@ -1,6 +1,12 @@
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
 import { useFormContext, FormMode } from '../../form/FormContext';
-import { Meet, Team, Season, Event } from '../../types/data'; // Ensure Meet type no longer has direct 'team'
+import { Meet, Team, Season, Event } from '../../types/data'; // Assuming Event is correctly typed
 import { useTeams } from '../teams/useTeams';
 import { useSeasons } from '../seasons/useSeasons';
 import { useEvents } from '../events/useEvents';
@@ -8,9 +14,7 @@ import { Timestamp } from 'firebase/firestore';
 import '../../styles/form.css';
 
 interface MeetsFormProps {
-  // formData here is the initial data passed to the form, e.g., for editing.
-  // It should conform to the new Meet structure (no direct 'team' field).
-  formData: Partial<Meet> | null;
+  formData: Partial<Meet> | null; // initialFormData might have eventOrder as string[]
   mode: FormMode;
 }
 
@@ -46,37 +50,55 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
     dispatch,
     updateFormField,
     selectItemForForm,
-    saveForm,
+    saveForm, // Crucial: This function will ideally handle dehydration
     clearForm,
     revertFormData,
     deleteItem,
   } = useFormContext();
-  const { selectedItem, isSaving, error, formData: currentFormData } = state;
+  const { selectedItem, isSaving, error, formData: currentFormData } = state; // currentFormData.eventOrder might be string[] or Event[]
 
   const { data: teamsData, isLoading: isLoadingTeams } = useTeams();
   const { data: allSeasonsData, isLoading: isLoadingSeasons } = useSeasons();
-  const { data: allEventsData, isLoading: isLoadingEvents } = useEvents();
+  const { data: allEventsData, isLoading: isLoadingEvents } = useEvents(); // Source for Event objects
 
-  // Local state to manage the selected team ID for filtering seasons
   const [selectedTeamIdForFiltering, setSelectedTeamIdForFiltering] =
     useState<string>('');
-  const [selectedEventToAdd, setSelectedEventToAdd] = useState<string>('');
+  const [selectedEventToAdd, setSelectedEventToAdd] = useState<string>(''); // This will store the ID of the event to add
   const isDisabled = mode === 'view' || mode === null || isSaving;
 
+  const initializedForMeetIdRef = useRef<string | null>(null);
+  const initializedForModeRef = useRef<FormMode | null>(null);
+
   useEffect(() => {
-    // Initialize the team filter when formData (for editing/viewing) is available
-    // or reset when switching to 'add' mode.
-    if (mode === 'edit' || mode === 'view') {
-      const initialTeamId = (initialFormData?.season as Season | undefined)
-        ?.team?.id;
-      setSelectedTeamIdForFiltering(initialTeamId ?? '');
-    } else {
-      // For 'add' mode or when form is cleared/reset
-      setSelectedTeamIdForFiltering('');
+    const currentMeetId = initialFormData?.id ?? null;
+    let needsReinitialization = false;
+    if (
+      initializedForModeRef.current === null &&
+      initializedForMeetIdRef.current === null
+    ) {
+      needsReinitialization = true;
+    } else if (mode !== initializedForModeRef.current) {
+      needsReinitialization = true;
+    } else if (currentMeetId !== initializedForMeetIdRef.current) {
+      needsReinitialization = true;
+    }
+
+    if (needsReinitialization) {
+      if (mode === 'edit' || mode === 'view') {
+        const teamIdFromInitialSeason = (
+          initialFormData?.season as Season | undefined
+        )?.team?.id;
+        setSelectedTeamIdForFiltering(teamIdFromInitialSeason ?? '');
+      } else {
+        setSelectedTeamIdForFiltering('');
+      }
+      initializedForMeetIdRef.current = currentMeetId;
+      initializedForModeRef.current = mode;
     }
   }, [initialFormData, mode]);
 
   const availableSeasons = useMemo(() => {
+    // ... (no changes needed here)
     if (!allSeasonsData || !selectedTeamIdForFiltering) {
       return [];
     }
@@ -85,6 +107,7 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
     );
   }, [allSeasonsData, selectedTeamIdForFiltering]);
 
+  // Map of all available events by their ID for quick lookup
   const eventMap = useMemo(() => {
     if (!allEventsData) return new Map<string, Event>();
     return new Map<string, Event>(
@@ -92,12 +115,36 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
     );
   }, [allEventsData]);
 
-  const currentEventOrder: string[] = useMemo(
-    () => (currentFormData?.eventOrder as string[]) ?? [],
-    [currentFormData?.eventOrder]
-  );
+  // This will be our primary array of Event objects for UI manipulation
+  const hydratedEventOrder: Event[] = useMemo(() => {
+    const orderSource = currentFormData?.eventOrder; // Could be string[] or already Event[]
+
+    if (!orderSource || !eventMap.size) {
+      return []; // No source data or no events to map with
+    }
+
+    // If the first item is an object with an 'id' property, assume it's already Event[]
+    if (
+      orderSource.length > 0 &&
+      typeof orderSource[0] === 'object' &&
+      orderSource[0] !== null &&
+      'id' in orderSource[0]
+    ) {
+      return orderSource as Event[];
+    }
+
+    // If the first item is a string, assume it's string[] and needs hydration
+    if (orderSource.length > 0 && typeof orderSource[0] === 'string') {
+      return (orderSource as string[])
+        .map((eventId) => eventMap.get(eventId))
+        .filter((event): event is Event => event !== undefined); // Filter out any undefined if an ID wasn't found
+    }
+
+    return []; // Default to empty if not matching expected structures
+  }, [currentFormData?.eventOrder, eventMap]);
 
   const handleTextFieldChange = useCallback(
+    // ... (no changes needed here)
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = e.target;
       updateFormField(name as keyof Meet, value);
@@ -106,6 +153,7 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
   );
 
   const handleBooleanSelectChange = useCallback(
+    // ... (no changes needed here)
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { name, value } = e.target;
       updateFormField(name as keyof Meet, stringToBool(value));
@@ -114,17 +162,17 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
   );
 
   const handleTeamChange = useCallback(
+    // ... (no changes needed here)
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       const newSelectedTeamId = event.target.value;
       setSelectedTeamIdForFiltering(newSelectedTeamId);
-      // When team selection changes, clear the currently selected season
-      // as the list of available seasons will update.
       updateFormField('season', null);
     },
-    [updateFormField] // setSelectedTeamIdForFiltering is a setState, not needed in deps here
+    [updateFormField]
   );
 
   const handleSeasonChange = useCallback(
+    // ... (no changes needed here)
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       const selectedSeasonId = event.target.value;
       const seasonObject = availableSeasons?.find(
@@ -138,41 +186,53 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
   const handleSelectedEventChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setSelectedEventToAdd(e.target.value);
+    setSelectedEventToAdd(e.target.value); // Value is the event ID string
   };
 
   const handleAddEvent = useCallback(() => {
-    if (!selectedEventToAdd || currentEventOrder.includes(selectedEventToAdd))
+    if (!selectedEventToAdd) return; // selectedEventToAdd is the ID string
+
+    const eventObjectToAdd = eventMap.get(selectedEventToAdd);
+    if (!eventObjectToAdd) {
+      console.warn('Event not found in map:', selectedEventToAdd);
       return;
-    const newEventOrder = [...currentEventOrder, selectedEventToAdd];
-    updateFormField('eventOrder', newEventOrder);
+    }
+
+    // Check if event (by ID) is already in the hydratedEventOrder
+    if (hydratedEventOrder.some((event) => event.id === selectedEventToAdd)) {
+      return; // Event already exists
+    }
+
+    const newEventOrderWithObjects = [...hydratedEventOrder, eventObjectToAdd];
+    updateFormField('eventOrder', newEventOrderWithObjects); // Update context with Event[]
     setSelectedEventToAdd('');
-  }, [currentEventOrder, selectedEventToAdd, updateFormField]);
+  }, [hydratedEventOrder, selectedEventToAdd, eventMap, updateFormField]);
 
   const handleRemoveEvent = useCallback(
     (indexToRemove: number) => {
-      const newEventOrder = currentEventOrder.filter(
+      const newEventOrderWithObjects = hydratedEventOrder.filter(
         (_, index) => index !== indexToRemove
       );
-      updateFormField('eventOrder', newEventOrder);
+      updateFormField('eventOrder', newEventOrderWithObjects); // Update context with Event[]
     },
-    [currentEventOrder, updateFormField]
+    [hydratedEventOrder, updateFormField]
   );
 
   const handleMoveEvent = useCallback(
     (index: number, direction: -1 | 1) => {
+      if (hydratedEventOrder.length === 0) return;
       const newIndex = index + direction;
-      if (newIndex < 0 || newIndex >= currentEventOrder.length) return;
-      const newEventOrder = [...currentEventOrder];
-      [newEventOrder[index], newEventOrder[newIndex]] = [
-        newEventOrder[newIndex],
-        newEventOrder[index],
-      ];
-      updateFormField('eventOrder', newEventOrder);
-    },
-    [currentEventOrder, updateFormField]
-  );
+      if (newIndex < 0 || newIndex >= hydratedEventOrder.length) return;
 
+      const newEventOrderWithObjects = [...hydratedEventOrder];
+      [newEventOrderWithObjects[index], newEventOrderWithObjects[newIndex]] = [
+        newEventOrderWithObjects[newIndex],
+        newEventOrderWithObjects[index],
+      ];
+      updateFormField('eventOrder', newEventOrderWithObjects); // Update context with Event[]
+    },
+    [hydratedEventOrder, updateFormField]
+  );
   const handleEditClick = useCallback(() => {
     if (selectedItem?.type === 'meet' && selectedItem?.id) {
       selectItemForForm(selectedItem.type, selectedItem.id, 'edit');
@@ -182,37 +242,30 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
   const handleCancelClick = useCallback(() => {
     if (selectedItem?.mode === 'add') {
       clearForm();
-      setSelectedTeamIdForFiltering(''); // Reset team filter on cancel add
     } else if (selectedItem?.type === 'meet' && selectedItem?.id) {
       revertFormData();
-      const revertedSeason = state.originalFormData?.season as
-        | Season
-        | undefined;
-      setSelectedTeamIdForFiltering(revertedSeason?.team?.id ?? '');
       selectItemForForm(selectedItem.type, selectedItem.id, 'view');
     }
-  }, [
-    selectedItem,
-    clearForm,
-    revertFormData,
-    selectItemForForm,
-    state.originalFormData,
-  ]);
+  }, [selectedItem, clearForm, revertFormData, selectItemForForm]);
 
   const handleDeleteClick = useCallback(async () => {
+    // ... (no changes)
     if (isSaving) return;
     await deleteItem();
   }, [isSaving, deleteItem]);
 
+  // IMPORTANT: Dehydration for Save
+  // The ideal place for dehydration (Event[] -> string[]) is within the FormContext's saveForm method.
+  // If FormContext.saveForm is responsible for this, handleSaveClick becomes simpler.
+  // If MeetsForm must do it because FormContext.saveForm is generic, then you'd transform here.
   const handleSaveClick = useCallback(async () => {
     if (isSaving || !currentFormData) return;
 
     const currentSeason = currentFormData.season as Season | undefined;
-
     if (
       !currentFormData.nameShort ||
       !currentFormData.nameLong ||
-      !currentSeason?.id || // Validating season.id implies team is also set via season.team
+      !currentSeason?.id ||
       !currentFormData.date
     ) {
       dispatch({
@@ -223,14 +276,17 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
       return;
     }
     if (error) dispatch({ type: 'SET_ERROR', payload: null });
+
     await saveForm();
   }, [isSaving, currentFormData, saveForm, dispatch, error]);
 
   return (
     <div className="form">
       <form onSubmit={(e) => e.preventDefault()}>
+        {/* ... (Team and Season dropdowns - no changes) ... */}
         <section>
           <p className="form-section-title">Meet Details</p>
+          {/* ... nameShort, nameLong, team, season fields ... */}
           <div className="field">
             <label htmlFor="nameShort">Short Name</label>
             <input
@@ -261,12 +317,12 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
             <label htmlFor="team">Team</label>
             <select
               id="team"
-              name="team" // Name attribute can remain for semantics, but doesn't map to Meet field
+              name="team"
               value={selectedTeamIdForFiltering}
               onChange={handleTeamChange}
               disabled={isDisabled || isLoadingTeams}
               required
-              aria-required="true" // User must pick a team to enable season selection
+              aria-required="true"
             >
               <option value="" disabled>
                 {isLoadingTeams ? 'Loading teams...' : 'Select a Team'}
@@ -307,8 +363,10 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
           </div>
         </section>
 
+        {/* ... (Date & Location section - no changes) ... */}
         <section>
           <p className="form-section-title">Date & Location</p>
+          {/* ... date, location, address fields ... */}
           <div className="field">
             <label htmlFor="date">Date</label>
             <input
@@ -352,7 +410,7 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
             <select
               id="eventToAdd"
               name="eventToAdd"
-              value={selectedEventToAdd}
+              value={selectedEventToAdd} // This is the event ID string
               onChange={handleSelectedEventChange}
               disabled={isDisabled || isLoadingEvents}
             >
@@ -362,8 +420,8 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
               {allEventsData?.map((event: Event) => (
                 <option
                   key={event.id}
-                  value={event.id}
-                  disabled={currentEventOrder.includes(event.id)}
+                  value={event.id} // Value is event ID
+                  disabled={hydratedEventOrder.some((e) => e.id === event.id)} // Check against hydrated list
                 >
                   {`${event.distance} ${event.course} ${event.stroke}`}
                 </option>
@@ -375,7 +433,7 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
               onClick={handleAddEvent}
               disabled={
                 !selectedEventToAdd ||
-                currentEventOrder.includes(selectedEventToAdd) ||
+                hydratedEventOrder.some((e) => e.id === selectedEventToAdd) || // Check against hydrated list
                 isDisabled
               }
             >
@@ -383,20 +441,21 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
             </button>
           </div>
           <ol className="event-order-list">
-            {currentEventOrder.length === 0 && !isDisabled && (
+            {hydratedEventOrder.length === 0 && !isDisabled && (
               <li className="empty-message">No events added yet.</li>
             )}
-            {currentEventOrder.map((eventId, index) => {
-              const event = eventMap.get(eventId);
+            {hydratedEventOrder.map((event, index) => {
+              // event is now a full Event object
               const canMoveUp = index > 0;
-              const canMoveDown = index < currentEventOrder.length - 1;
+              const canMoveDown = index < hydratedEventOrder.length - 1;
               return (
-                <li key={`${eventId}-${index}`} className="event-order-item">
+                <li key={`${event.id}-${index}`} className="event-order-item">
+                  {' '}
+                  {/* Unique key using event.id */}
                   <span className="event-order-number">{index + 1}.</span>
                   <span className="details">
-                    {event
-                      ? `${event.distance} ${event.course} ${event.stroke}`
-                      : `Unknown Event (ID: ${eventId})`}
+                    {/* Directly use properties from the event object */}
+                    {`${event.distance} ${event.course} ${event.stroke}`}
                   </span>
                   <span className="controls">
                     <button
@@ -433,8 +492,10 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
           </ol>
         </section>
 
+        {/* ... (Settings & Status, Actions, Timestamps sections - no changes needed in their structure due to this) ... */}
         <section>
           <p className="form-section-title">Settings & Status</p>
+          {/* ... official, benchmarks, dataComplete fields ... */}
           <div className="field">
             <label htmlFor="official">Official Meet?</label>
             <select
@@ -482,6 +543,7 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
         <section>
           <p className="form-section-title">Actions</p>
           {error && <div className="form-message error">{error}</div>}
+          {/* ... buttons ... */}
           <div className="buttons">
             {mode === 'view' && selectedItem?.id && (
               <button type="button" onClick={handleEditClick}>
@@ -522,6 +584,7 @@ function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
 
         {(currentFormData?.createdAt || currentFormData?.updatedAt) && (
           <section className="form-timestamps">
+            {/* ... timestamps ... */}
             {currentFormData.createdAt && (
               <p className="timestamp-field">
                 Created: {formatTimestamp(currentFormData.createdAt)}

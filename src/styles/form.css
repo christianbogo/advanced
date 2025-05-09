@@ -1,3 +1,6 @@
+/* form.css */
+
+/* ... (your existing .form, .form-timestamps, .form-message, .form-options styles) ... */
 .form {
   flex: 1;
   display: flex;
@@ -109,7 +112,8 @@
   gap: 1rem;
 }
 
-.form section > p {
+.form section > p.form-section-title {
+  /* Added .form-section-title for specificity */
   display: flex;
   align-items: center;
   text-align: center;
@@ -120,8 +124,9 @@
   letter-spacing: 1px;
 }
 
-.form section > p::before,
-.form section > p::after {
+.form section > p.form-section-title::before, /* Added .form-section-title */
+.form section > p.form-section-title::after {
+  /* Added .form-section-title */
   content: '';
   flex-grow: 1;
   height: 1px;
@@ -133,6 +138,29 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 0.5rem;
+}
+
+/* New styles for field groups that contain more than just a label and an input */
+.form .field-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem; /* Consistent with .field */
+}
+
+.form .field-group > label {
+  /* Style for the main label of the field group (e.g., "Additional Emails") */
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: left;
+  transform: translate(0.5rem, 0rem); /* Similar to .field label */
+  background-color: var(--page-bg, white);
+  border: 1px solid var(--grey-light);
+  width: min-content;
+  text-wrap: nowrap;
+  padding: 0 0.5rem;
+  z-index: 1;
+  position: relative;
+  margin-bottom: -0.45rem; /* Pull the following content up slightly */
 }
 
 .form .field label {
@@ -155,7 +183,9 @@
 .form .field input[type='number'],
 .form .field input[type='date'],
 .form .field input[type='tel'],
-.form .field select {
+.form .field select,
+.form .field-group input[type='email'] {
+  /* Apply to email input in field-group too */
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--grey-light);
@@ -164,7 +194,13 @@
   box-sizing: border-box;
   font-family: inherit;
   color: var(--text-primary);
-  padding-top: 12px;
+  padding-top: 12px; /* To make space for the floating label style if it were used directly */
+}
+
+/* Specific adjustment for email input within add-email-control if label isn't floating */
+.form .add-email-control input[type='email'] {
+  padding-top: 8px; /* Revert to standard padding if no floating label */
+  margin-bottom: 0; /* Align with button if they are side-by-side */
 }
 
 .form .field input[type='text']:focus,
@@ -172,7 +208,9 @@
 .form .field input[type='password']:focus,
 .form .field input[type='number']:focus,
 .form .field input[type='date']:focus,
-.form .field select:focus {
+.form .field select:focus,
+.form .field-group input[type='email']:focus {
+  /* Apply to email input in field-group too */
   outline: none;
   border-color: var(--grey-dark);
 }
@@ -195,13 +233,14 @@
 }
 
 .form .field select:disabled {
-  opacity: 1;
+  opacity: 1; /* Consider a more standard opacity like 0.6 or 0.7 */
   cursor: not-allowed;
 }
 
-.form .field label {
+/* This rule seems redundant if .field label has it, ensure specificity or remove if not needed */
+/* .form .field label {
   background-color: var(--page-bg, white);
-}
+} */
 
 .form .buttons {
   display: flex;
@@ -227,20 +266,26 @@
   background-color: var(--white);
 }
 
-.form .add-event-control {
+/* Styles for Add Event / Add Email Controls */
+.form .add-event-control,
+.form .add-email-control {
+  /* Apply similar styles to add-email-control */
   display: flex;
   gap: 0.5rem;
-  align-items: center;
-  margin-bottom: 1rem;
+  align-items: center; /* Vertically align items */
 }
 
-.form .add-event-control select {
+.form .add-event-control select,
+.form .add-email-control input[type='email'] {
+  /* Target input within add-email-control */
   flex-grow: 1;
-  margin-bottom: 0;
-  padding-top: 8px;
+  margin-bottom: 0; /* Remove bottom margin if it's part of a flex row */
+  /* padding-top: 8px; /* Standard padding if no floating label */
 }
 
-.form .add-event-control .btn-add-event {
+.form .add-event-control .btn-add-event,
+.form .add-email-control .btn-add-email {
+  /* Style for the "Add" button */
   padding: 8px 15px;
   background-color: transparent;
   border: 1px solid var(--grey-light);
@@ -249,35 +294,53 @@
   cursor: pointer;
   font-family: inherit;
   border-radius: 3px;
-  flex-shrink: 0;
+  flex-shrink: 0; /* Prevent button from shrinking */
+  line-height: normal; /* Ensure consistent button height with input */
 }
 
-.form .add-event-control .btn-add-event:hover:not(:disabled) {
+.form .add-event-control .btn-add-event:hover:not(:disabled),
+.form .add-email-control .btn-add-email:hover:not(:disabled) {
   background-color: var(--white);
 }
 
-.form .add-event-control .btn-add-event:disabled {
+.form .add-event-control .btn-add-event:disabled,
+.form .add-email-control .btn-add-email:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.form .event-order-list {
+/* Styles for Event List / Email List */
+.form .event-order-list,
+.form .email-list {
+  /* Apply similar styles to email-list */
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0.5rem 0 0 0; /* Add some margin-top if it follows add-email-control */
   border: 1px solid var(--grey-light);
-  max-height: 250px;
+  max-height: 150px; /* Adjust max-height as needed for emails */
   overflow-y: auto;
+  border-radius: 3px; /* Optional: slight rounding */
 }
 
-.form .event-order-list .empty-message {
-  padding: 1rem;
+.form .event-order-list .empty-message,
+.form .email-list .empty-message, /* General empty message styling */
+.form .emails-management .empty-message {
+  /* Specific for email section messages */
+  padding: 0.8rem 1rem; /* Slightly less padding than form-message */
   text-align: center;
   color: var(--text-secondary);
   font-style: italic;
+  font-size: 0.85rem; /* Slightly smaller */
+  border-bottom: none; /* Ensure no border if it's an li */
+}
+/* Ensure li.empty-message doesn't get item borders */
+.form .email-list li.empty-message {
+  border-bottom: none;
 }
 
-.form .event-order-item {
+.form .event-order-item,
+.form .email-item {
+  /* Apply similar styles to email-item */
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -286,7 +349,8 @@
   font-size: 0.85rem;
 }
 
-.form .event-order-item:last-child {
+.form .event-order-item:last-child,
+.form .email-item:last-child {
   border-bottom: none;
 }
 
@@ -298,47 +362,62 @@
   padding-right: 0.5em;
 }
 
-.form .event-order-item .details {
+.form .event-order-item .details,
+.form .email-item span {
+  /* Target the span holding the email text */
   flex-grow: 1;
   text-align: left;
+  word-break: break-all; /* Prevent long emails from breaking layout */
 }
 
-.form .event-order-item .controls {
-  display: flex;
-  gap: 0.3rem;
+.form .event-order-item .controls,
+.form .email-item .btn-remove-email {
+  /* Style the remove button directly */
+  /* If .controls div is not used for email-item, style btn-remove-email directly */
+  /* For consistency, let's assume .controls could be used or style button directly */
+  display: flex; /* If .controls is used */
+  gap: 0.3rem; /* If .controls is used */
   flex-shrink: 0;
 }
 
-.form .event-order-item .controls button {
+/* Specific styling for remove buttons in lists */
+.form .event-order-item .controls button,
+.form .email-item .btn-remove-email {
   background-color: transparent;
   border: 1px solid transparent;
   color: var(--text-secondary);
   cursor: pointer;
   padding: 2px 5px;
-  font-size: 0.9rem;
+  font-size: 0.9rem; /* Consistent with event controls */
   line-height: 1;
   border-radius: 3px;
-  font-weight: bold;
-  min-width: 24px;
-  text-align: center;
+  font-weight: bold; /* Consistent */
+  min-width: 24px; /* Consistent */
+  text-align: center; /* Consistent */
 }
 
-.form .event-order-item .controls button:hover:not(:disabled) {
+.form .event-order-item .controls button:hover:not(:disabled),
+.form .email-item .btn-remove-email:hover:not(:disabled) {
   background-color: var(--grey-light);
   border-color: var(--grey-light);
   color: var(--text-primary);
 }
 
-.form .event-order-item .controls button:disabled {
+.form .event-order-item .controls button:disabled,
+.form .email-item .btn-remove-email:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.form .event-order-item .controls .btn-remove-event:hover:not(:disabled) {
+/* Specific hover for remove buttons to make them red, like event remove */
+.form .event-order-item .controls .btn-remove-event:hover:not(:disabled),
+.form .email-item .btn-remove-email:hover:not(:disabled) {
+  /* Apply red hover to email remove too */
   color: var(--color-accent-red, red);
-  background-color: rgba(255, 0, 0, 0.1);
+  background-color: rgba(255, 0, 0, 0.1); /* Light red background */
 }
 
+/* ... (your existing .modal-backdrop, .modal-container, etc. styles) ... */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -512,8 +591,8 @@
   border: 1px solid var(--grey-light);
   font-size: 0.9rem;
   box-sizing: border-box;
-  min-height: 38px;
-  padding-top: 12px;
+  min-height: 38px; /* Corresponds to input height with padding */
+  padding-top: 12px; /* Consistent with inputs if label were floating */
 }
 
 .form .person-display-name {
@@ -527,7 +606,7 @@
 
 .form .button-change-person {
   flex-shrink: 0;
-  padding: 3px 8px;
+  padding: 3px 8px; /* Make it a bit smaller */
   font-size: 0.8rem;
   background-color: var(--grey-lighter);
   border: 1px solid var(--grey-light);
@@ -553,7 +632,13 @@
 .form .field-hint.subtle {
   font-size: 0.75rem;
   color: var(--text-secondary);
-  margin-top: -0.25rem;
+  margin-top: -0.25rem; /* Pull up slightly under the input */
   padding-left: 0.5rem;
   font-style: italic;
+}
+
+.form button:disabled {
+  /* General disabled button style */
+  cursor: not-allowed;
+  opacity: 0.6;
 }

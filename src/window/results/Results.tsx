@@ -53,12 +53,13 @@ function ResultsWindow() {
     return (
       resultItem.athletes
         .map((athlete) => {
+          if (!athlete?.person) return null; // Handle cases where athlete or person might be missing
           const person = athlete.person;
-          const firstName = person?.preferredName || person?.firstName;
-          const lastName = person?.lastName;
+          const firstName = person.preferredName || person.firstName;
+          const lastName = person.lastName;
           return `${firstName ?? ''} ${lastName ?? ''}`.trim();
         })
-        .filter(Boolean)
+        .filter(Boolean) // Remove any null or empty strings resulting from missing data
         .join(', ') || 'Unnamed Athlete(s)'
     );
   };
@@ -66,7 +67,9 @@ function ResultsWindow() {
   const getEventString = (resultItem: Result): string => {
     const eventObj = resultItem.event;
     if (!eventObj) return 'Unknown Event';
-    return `${eventObj.distance || '?'}m ${eventObj.stroke || '?'} ${eventObj.course || '?'}`;
+    return `${eventObj.distance || '?'}m ${eventObj.stroke || '?'} ${
+      eventObj.course || '?'
+    }`;
   };
 
   return (
@@ -88,8 +91,7 @@ function ResultsWindow() {
         {isLoading && <div className="loading-message">Loading results...</div>}
         {isError && error && (
           <div className="error-message">
-            {' '}
-            Error loading results: {error.message}{' '}
+            Error loading results: {error.message}
           </div>
         )}
 
@@ -112,24 +114,31 @@ function ResultsWindow() {
             let isFaded = false;
             const { selected, superSelected } = filterState;
 
+            // Team Fading Logic
             if (selected.team.length > 0 && !superSelected.team.length) {
               if (
-                !resultItem.team?.id ||
-                !selected.team.includes(resultItem.team.id)
-              )
+                !resultItem.meet?.season?.team?.id || // CORRECTED PATH
+                !selected.team.includes(resultItem.meet.season.team.id) // CORRECTED PATH
+              ) {
                 isFaded = true;
+              }
             }
+
+            // Season Fading Logic
             if (
               !isFaded &&
               selected.season.length > 0 &&
               !superSelected.season.length
             ) {
               if (
-                !resultItem.season?.id ||
-                !selected.season.includes(resultItem.season.id)
-              )
+                !resultItem.meet?.season?.id || // CORRECTED PATH
+                !selected.season.includes(resultItem.meet.season.id) // CORRECTED PATH
+              ) {
                 isFaded = true;
+              }
             }
+
+            // Meet Fading Logic
             if (
               !isFaded &&
               selected.meet.length > 0 &&
@@ -138,9 +147,12 @@ function ResultsWindow() {
               if (
                 !resultItem.meet?.id ||
                 !selected.meet.includes(resultItem.meet.id)
-              )
+              ) {
                 isFaded = true;
+              }
             }
+
+            // Event Fading Logic
             if (
               !isFaded &&
               selected.event.length > 0 &&
@@ -149,9 +161,12 @@ function ResultsWindow() {
               if (
                 !resultItem.event?.id ||
                 !selected.event.includes(resultItem.event.id)
-              )
+              ) {
                 isFaded = true;
+              }
             }
+
+            // Athlete Fading Logic
             if (
               !isFaded &&
               selected.athlete.length > 0 &&
@@ -159,12 +174,16 @@ function ResultsWindow() {
             ) {
               const selectedAthleteSet = new Set(selected.athlete);
               if (
+                !resultItem.athletes || // Ensure athletes array exists
                 !resultItem.athletes.some(
-                  (ath) => ath.id && selectedAthleteSet.has(ath.id)
+                  (ath) => ath?.id && selectedAthleteSet.has(ath.id)
                 )
-              )
+              ) {
                 isFaded = true;
+              }
             }
+
+            // Person Fading Logic
             if (
               !isFaded &&
               selected.person.length > 0 &&
@@ -172,12 +191,14 @@ function ResultsWindow() {
             ) {
               const selectedPersonSet = new Set(selected.person);
               if (
+                !resultItem.athletes || // Ensure athletes array exists
                 !resultItem.athletes.some(
                   (ath) =>
-                    ath.person?.id && selectedPersonSet.has(ath.person.id)
+                    ath?.person?.id && selectedPersonSet.has(ath.person.id)
                 )
-              )
+              ) {
                 isFaded = true;
+              }
             }
 
             const isClickable = !isFaded;
@@ -189,8 +210,9 @@ function ResultsWindow() {
             let itemClasses: string[] = ['item'];
             if (isSuperSelected) itemClasses.push('super', 'selected');
             else if (isSelected) itemClasses.push('selected');
-            if (isFaded && !isSelected && !isSuperSelected)
+            if (isFaded && !isSelected && !isSuperSelected) {
               itemClasses.push('faded');
+            }
 
             return (
               <div

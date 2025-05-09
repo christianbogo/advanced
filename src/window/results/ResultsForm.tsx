@@ -13,6 +13,8 @@ import {
   timeStringToHundredths,
 } from '../../utils/time';
 import '../../styles/form.css';
+// TODO: Import useAthletes or a similar hook to fetch athletes for the current meet context
+// import { useAthletes } from '../athletes/useAthletes';
 
 interface ResultsFormProps {
   mode: FormMode;
@@ -22,7 +24,16 @@ const getSafeArray = (arr: any[] | undefined | null): any[] =>
   Array.isArray(arr) ? arr : [];
 
 const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
-  const { state, dispatch, updateFormField, saveForm } = useFormContext();
+  const {
+    state,
+    dispatch,
+    updateFormField,
+    saveForm,
+    clearForm,
+    revertFormData,
+    deleteItem,
+    selectItemForForm, // Ensure this is destructured
+  } = useFormContext();
   const {
     isSaving,
     error,
@@ -30,15 +41,24 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
     selectedItem,
   } = state as typeof state & {
     formData: Partial<Result> | null;
-    selectedItem?: Result | null;
+    selectedItem?: (Partial<Result> & { id?: string; mode?: FormMode }) | null; // More specific type for selectedItem
   };
   const { state: filterState } = useFilterContext();
 
   const { data: teamsData, isLoading: isLoadingTeams } = useTeams();
   const { data: allSeasonsData, isLoading: isLoadingSeasons } = useSeasons();
-  const { data: allMeetsData, isLoading: isLoadingMeets } = useMeets();
+  const { data: allMeetsDataFromHook, isLoading: isLoadingMeets } = useMeets();
   const { data: allEventsData, isLoading: isLoadingEvents } = useEvents();
 
+  // TODO: Replace this with actual data fetching for athletes relevant to the selected meet
+  const [athletesForMeetContext, setAthletesForMeetContext] = useState<
+    Athlete[]
+  >([]);
+
+  const [selectedTeamIdForFilter, setSelectedTeamIdForFilter] =
+    useState<string>('');
+  const [selectedSeasonIdForFilter, setSelectedSeasonIdForFilter] =
+    useState<string>('');
   const [isRelay, setIsRelay] = useState<boolean>(false);
   const [selectingAthleteSlot, setSelectingAthleteSlot] = useState<
     number | null
@@ -49,7 +69,119 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
   const requiredAthletes = useMemo(() => (isRelay ? 4 : 1), [isRelay]);
 
   useEffect(() => {
-    setIsRelay((currentFormData?.athletes?.length ?? 0) > 1);
+    const resultMeet = currentFormData?.meet as Meet | undefined;
+    if (mode === 'edit' || mode === 'view') {
+      if (resultMeet?.season?.team?.id) {
+        setSelectedTeamIdForFilter(resultMeet.season.team.id);
+      } else {
+        setSelectedTeamIdForFilter('');
+      }
+      if (resultMeet?.season?.id) {
+        setSelectedSeasonIdForFilter(resultMeet.season.id);
+      } else {
+        setSelectedSeasonIdForFilter('');
+      }
+    } else if (mode === 'add') {
+      if (!currentFormData?.meet) {
+        // Fallback clear if pre-selection doesn't happen and no meet on form
+        if (
+          !selectedTeamIdForFilter &&
+          !(
+            filterState.superSelected.team.length > 0 ||
+            filterState.superSelected.meet.length > 0 ||
+            filterState.superSelected.season.length > 0
+          )
+        )
+          setSelectedTeamIdForFilter('');
+        if (
+          !selectedSeasonIdForFilter &&
+          !(
+            filterState.superSelected.meet.length > 0 ||
+            filterState.superSelected.season.length > 0
+          )
+        )
+          setSelectedSeasonIdForFilter('');
+      } else if (resultMeet?.season?.team?.id && resultMeet?.season?.id) {
+        setSelectedTeamIdForFilter(resultMeet.season.team.id);
+        setSelectedSeasonIdForFilter(resultMeet.season.id);
+      }
+    }
+  }, [
+    mode,
+    currentFormData?.meet,
+    filterState.superSelected.team,
+    filterState.superSelected.season,
+    filterState.superSelected.meet,
+    selectedTeamIdForFilter,
+    selectedSeasonIdForFilter,
+  ]);
+
+  useEffect(() => {
+    if (
+      mode === 'add' &&
+      !currentFormData?.meet &&
+      !(selectedTeamIdForFilter && selectedSeasonIdForFilter) && // More precise: only if both filters aren't already meaningfully set
+      teamsData &&
+      allSeasonsData &&
+      allMeetsDataFromHook
+    ) {
+      const {
+        meet: superSelectedMeetIds,
+        season: superSelectedSeasonIds,
+        team: superSelectedTeamIds,
+      } = filterState.superSelected;
+
+      let preSelectedTeamIdVal = '';
+      let preSelectedSeasonIdVal = '';
+      let preSelectedMeetObj: Meet | null = null;
+
+      if (superSelectedMeetIds?.length === 1) {
+        const meetObject = allMeetsDataFromHook.find(
+          (m) => m.id === superSelectedMeetIds[0]
+        );
+        if (meetObject?.season?.team?.id && meetObject?.season?.id) {
+          preSelectedMeetObj = meetObject;
+          preSelectedSeasonIdVal = meetObject.season.id;
+          preSelectedTeamIdVal = meetObject.season.team.id;
+        }
+      } else if (superSelectedSeasonIds?.length === 1) {
+        const seasonObject = allSeasonsData.find(
+          (s) => s.id === superSelectedSeasonIds[0]
+        );
+        if (seasonObject?.team?.id) {
+          preSelectedSeasonIdVal = seasonObject.id;
+          preSelectedTeamIdVal = seasonObject.team.id;
+        }
+      } else if (superSelectedTeamIds?.length === 1) {
+        const teamObject = teamsData.find(
+          (t) => t.id === superSelectedTeamIds[0]
+        );
+        if (teamObject) {
+          preSelectedTeamIdVal = teamObject.id;
+        }
+      }
+
+      if (preSelectedTeamIdVal)
+        setSelectedTeamIdForFilter(preSelectedTeamIdVal);
+      if (preSelectedSeasonIdVal)
+        setSelectedSeasonIdForFilter(preSelectedSeasonIdVal);
+      if (preSelectedMeetObj) updateFormField('meet', preSelectedMeetObj);
+    }
+  }, [
+    mode,
+    filterState.superSelected,
+    teamsData,
+    allSeasonsData,
+    allMeetsDataFromHook,
+    updateFormField,
+    currentFormData?.meet,
+    selectedTeamIdForFilter,
+    selectedSeasonIdForFilter,
+  ]);
+
+  useEffect(() => {
+    const athletes = getSafeArray(currentFormData?.athletes) as Athlete[];
+    setIsRelay(athletes.length > 1);
     if (
       currentFormData?.result !== undefined &&
       currentFormData.result !== null
@@ -61,86 +193,61 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
   }, [currentFormData?.athletes, currentFormData?.result]);
 
   const availableSeasons = useMemo(() => {
-    const currentTeam = currentFormData?.team as Team | undefined;
-    if (!allSeasonsData || !currentTeam?.id) return [];
-    return allSeasonsData.filter((season) => season.team.id === currentTeam.id);
-  }, [allSeasonsData, currentFormData?.team]);
+    if (!allSeasonsData || !selectedTeamIdForFilter) return [];
+    return allSeasonsData.filter(
+      (season) => season.team.id === selectedTeamIdForFilter
+    );
+  }, [allSeasonsData, selectedTeamIdForFilter]);
 
   const availableMeets = useMemo(() => {
-    const currentSeason = currentFormData?.season as Season | undefined;
-    if (!allMeetsData || !currentSeason?.id) return [];
-    return allMeetsData.filter((meet) => meet.season.id === currentSeason.id);
-  }, [allMeetsData, currentFormData?.season]);
+    if (!allMeetsDataFromHook || !selectedSeasonIdForFilter) return [];
+    return allMeetsDataFromHook.filter(
+      (meet) => meet.season.id === selectedSeasonIdForFilter
+    );
+  }, [allMeetsDataFromHook, selectedSeasonIdForFilter]);
 
   const availableEvents = useMemo(() => {
-    // Basic: return all events. Implement meet-specific filtering if needed.
-    return allEventsData ?? [];
-  }, [allEventsData]);
-
-  useEffect(() => {
-    if (
-      mode === 'add' &&
-      !(currentFormData?.team as Team)?.id &&
-      !(currentFormData?.season as Season)?.id &&
-      teamsData &&
-      allSeasonsData
-    ) {
-      const { season: superSelectedSeasonIds, team: superSelectedTeamIds } =
-        filterState.superSelected;
-      if (superSelectedSeasonIds.length === 1) {
-        const seasonObject = allSeasonsData.find(
-          (s) => s.id === superSelectedSeasonIds[0]
-        );
-        if (seasonObject?.team) {
-          updateFormField('season', seasonObject);
-          updateFormField('team', seasonObject.team); // Team object from season
-        }
-      } else if (superSelectedTeamIds.length === 1) {
-        const teamObject = teamsData.find(
-          (t) => t.id === superSelectedTeamIds[0]
-        );
-        if (teamObject) updateFormField('team', teamObject);
-      }
-    }
-  }, [
-    mode,
-    filterState.superSelected,
-    allSeasonsData,
-    teamsData,
-    updateFormField,
-    currentFormData?.team,
-    currentFormData?.season,
-  ]);
+    const meet = currentFormData?.meet as Meet | undefined;
+    if (!allEventsData || !meet?.eventOrder?.length) return allEventsData ?? [];
+    // Assuming meet.eventOrder is string[] and Event has id: string
+    // If meet.eventOrder was changed to Event[], this part needs adjustment for Error 1.
+    // Based on the error "Argument of type 'string' is not assignable to parameter of type 'Event'"
+    // on meetEventIds.has(event.id), it implies meet.eventOrder is Event[].
+    const meetEventIdSet = new Set(
+      (meet.eventOrder as string[] | Event[]).map((item) =>
+        typeof item === 'string' ? item : item.id
+      )
+    ); // Robustly create Set<string>
+    return (allEventsData || []).filter((event: Event) =>
+      meetEventIdSet.has(event.id)
+    );
+  }, [allEventsData, currentFormData?.meet]);
 
   const handleTeamChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedTeamId = event.target.value;
-      const teamObject = teamsData?.find((t) => t.id === selectedTeamId);
-      updateFormField('team', teamObject ?? null);
-      updateFormField('season', null);
+    /* ...as before... */ (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const newTeamId = event.target.value;
+      setSelectedTeamIdForFilter(newTeamId);
+      setSelectedSeasonIdForFilter('');
       updateFormField('meet', null);
       updateFormField('event', null);
       updateFormField('athletes', []);
     },
-    [teamsData, updateFormField]
+    [updateFormField]
   );
 
   const handleSeasonChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedSeasonId = event.target.value;
-      const seasonObject = availableSeasons?.find(
-        (s) => s.id === selectedSeasonId
-      );
-      updateFormField('season', seasonObject ?? null);
+    /* ...as before... */ (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const newSeasonId = event.target.value;
+      setSelectedSeasonIdForFilter(newSeasonId);
       updateFormField('meet', null);
       updateFormField('event', null);
-      // Athletes are tied to season/team, could clear here or let AthleteSelector handle filtering
+      updateFormField('athletes', []);
     },
-    [availableSeasons, updateFormField]
+    [updateFormField]
   );
 
   const handleMeetChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
+    /* ...as before... */ (event: React.ChangeEvent<HTMLSelectElement>) => {
       const selectedMeetId = event.target.value;
       const meetObject = availableMeets?.find((m) => m.id === selectedMeetId);
       updateFormField('meet', meetObject ?? null);
@@ -150,7 +257,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
   );
 
   const handleEventChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
+    /* ...as before... */ (event: React.ChangeEvent<HTMLSelectElement>) => {
       const selectedEventId = event.target.value;
       const eventObject = availableEvents?.find(
         (e) => e.id === selectedEventId
@@ -161,125 +268,147 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
   );
 
   const handleRelayToggleChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
+    /* ...as before... */ (event: React.ChangeEvent<HTMLSelectElement>) => {
       const relaySelected = event.target.value === 'relay';
       setIsRelay(relaySelected);
-      updateFormField('athletes', []); // Clear athletes on type change
+      updateFormField('athletes', []);
     },
-    [updateFormField, setIsRelay]
+    [updateFormField]
   );
 
   const handleOpenAthleteModal = useCallback(
-    (slotIndex: number) => {
+    /* ...as before... */ (slotIndex: number) => {
       if (isDisabled) return;
-      const currentTeam = currentFormData?.team as Team | undefined;
-      const currentSeason = currentFormData?.season as Season | undefined;
-      if (!currentTeam?.id || !currentSeason?.id) {
+      const currentMeetForModal = currentFormData?.meet as Meet | undefined;
+      if (
+        !currentMeetForModal?.season?.team?.id ||
+        !currentMeetForModal?.season?.id
+      ) {
         dispatch({
           type: 'SET_ERROR',
-          payload: 'Please select a Team and Season before choosing athletes.',
+          payload: 'Please select a Meet before choosing athletes.',
         });
         return;
       }
       if (error) dispatch({ type: 'SET_ERROR', payload: null });
+      // TODO: Populate athletesForMeetContext based on currentMeetForModal
       setSelectingAthleteSlot(slotIndex);
     },
-    [
-      isDisabled,
-      currentFormData?.team,
-      currentFormData?.season,
-      dispatch,
-      error,
-    ]
+    [isDisabled, currentFormData?.meet, dispatch, error]
   );
 
   const handleCloseAthleteModal = useCallback(
-    () => setSelectingAthleteSlot(null),
+    /* ...as before... */ () => setSelectingAthleteSlot(null),
     []
   );
 
+  // Assuming AthleteSelectorModal's onSelect prop is (selection: { athleteId: string; personId: string; }) => void
   const handleAthleteSelect = useCallback(
     (selection: { athleteId: string; personId: string }) => {
       if (selectingAthleteSlot === null) return;
-      // Find the Athlete object by athleteId
-      const allAthletes: Athlete[] = getSafeArray(
-        currentFormData?.allAthletes
-      ) as Athlete[]; // You may need to provide allAthletes via props/context
-      let selectedAthlete: Athlete | undefined = allAthletes.find(
-        (ath) => ath.id === selection.athleteId
-      );
 
-      // Fallback: try to find in current athletes if not found in allAthletes
-      if (!selectedAthlete) {
-        selectedAthlete = (
-          getSafeArray(currentFormData?.athletes) as Athlete[]
-        ).find((ath) => ath?.id === selection.athleteId);
-      }
+      // TODO: This is a placeholder. You need to fetch/have access to the full Athlete objects for the current meet.
+      // const athletesAvailableForMeet = athletesForMeetContext; // Use the state variable holding fetched athletes
+      const athletesAvailableForMeet: Athlete[] = []; // Replace with actual data
 
-      if (!selectedAthlete) {
+      const selectedAthleteObject: Athlete | undefined =
+        athletesAvailableForMeet.find((ath) => ath.id === selection.athleteId);
+
+      if (!selectedAthleteObject) {
         dispatch({
           type: 'SET_ERROR',
-          payload: 'Selected athlete not found.',
+          payload: `Athlete (ID: ${selection.athleteId}) details not found. Load athletes for meet.`,
         });
         return;
       }
 
-      const currentAthletes = getSafeArray(
-        currentFormData?.athletes
-      ) as Athlete[];
+      const currentAthletes = getSafeArray(currentFormData?.athletes) as (
+        | Athlete
+        | undefined
+        | null
+      )[];
       const newAthletes = [...currentAthletes];
       const targetSize = requiredAthletes;
 
       while (
         newAthletes.length < targetSize &&
         newAthletes.length < selectingAthleteSlot
-      )
-        newAthletes.push(undefined as any); // Pad if necessary
-      newAthletes[selectingAthleteSlot] = selectedAthlete;
+      ) {
+        newAthletes.push(null);
+      }
+      newAthletes[selectingAthleteSlot] = selectedAthleteObject;
 
-      // Trim or pad to ensure correct length for relay/individual
-      const finalAthletes = newAthletes.slice(0, targetSize);
-      while (finalAthletes.length < targetSize)
-        finalAthletes.push(undefined as any); // Pad with placeholders if still short (e.g. first selection for relay)
+      let finalAthletesForForm = newAthletes.slice(0, targetSize);
+      while (finalAthletesForForm.length < targetSize) {
+        finalAthletesForForm.push(null);
+      }
 
-      updateFormField('athletes', finalAthletes.filter(Boolean)); // Store only valid athletes
+      updateFormField('athletes', finalAthletesForForm);
       handleCloseAthleteModal();
     },
     [
       selectingAthleteSlot,
       currentFormData?.athletes,
-      currentFormData?.allAthletes,
       requiredAthletes,
       updateFormField,
       handleCloseAthleteModal,
       dispatch,
+      athletesForMeetContext, // Add as dependency
     ]
   );
 
   const handleTimeInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    /* ...as before... */ (e: React.ChangeEvent<HTMLInputElement>) => {
       setResultTimeString(e.target.value);
     },
     []
   );
 
   const handleBooleanSelectChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    /* ...as before... */ (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { name, value } = e.target;
-      updateFormField(name, stringToBool(value));
+      updateFormField(name as keyof Result, stringToBool(value));
     },
     [updateFormField]
   );
 
-  const handleEditClick = useCallback(() => {
-    /* ... */
-  }, []); // Placeholder, full logic from original
-  const handleCancelClick = useCallback(() => {
-    /* ... */
-  }, []); // Placeholder
-  const handleDeleteClick = useCallback(async () => {
-    /* ... */
-  }, []); // Placeholder
+  const handleEditClick = useCallback(
+    /* ...as before... */ () => {
+      const currentSelectedItem = selectedItem as
+        | (Partial<Result> & { id?: string })
+        | null;
+      if (currentSelectedItem?.id) {
+        selectItemForForm('result', currentSelectedItem.id, 'edit');
+      }
+    },
+    [selectedItem, selectItemForForm]
+  );
+
+  const handleCancelClick = useCallback(
+    /* ...as before... */ () => {
+      const currentSelectedItem = selectedItem as
+        | (Partial<Result> & { id?: string; mode?: FormMode })
+        | null;
+      if (currentSelectedItem?.mode === 'add') {
+        clearForm();
+      } else if (currentSelectedItem?.id) {
+        revertFormData();
+        selectItemForForm('result', currentSelectedItem.id, 'view');
+      }
+    },
+    [selectedItem, clearForm, revertFormData, selectItemForForm]
+  );
+
+  const handleDeleteClick = useCallback(
+    /* ...as before... */ async () => {
+      const currentSelectedItem = selectedItem as
+        | (Partial<Result> & { id?: string })
+        | null;
+      if (isSaving || !currentSelectedItem?.id) return;
+      await deleteItem();
+    },
+    [isSaving, selectedItem, deleteItem]
+  );
 
   const handleSaveClick = useCallback(async () => {
     if (isSaving || !currentFormData) return;
@@ -293,63 +422,81 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
       return;
     }
 
-    // Update formData with numeric result before validation
-    // This ensures currentFormData used in validation has the number.
-    // Or, validate numericResult directly.
-    const currentAthletesArray = getSafeArray(
-      currentFormData?.athletes
-    ) as Athlete[];
-    const populatedAthletesCount = currentAthletesArray.filter(
-      (ath) => ath?.id
-    ).length;
+    const currentAthletesArray = getSafeArray(currentFormData?.athletes) as (
+      | Athlete
+      | undefined
+      | null
+    )[];
+    const populatedAthletes = currentAthletesArray.filter(
+      (ath): ath is Athlete => !!ath?.id
+    );
 
-    if (!(currentFormData.team as Team)?.id) {
-      dispatch({ type: 'SET_ERROR', payload: 'Team is required.' });
-      return;
-    }
-    if (!(currentFormData.season as Season)?.id) {
-      dispatch({ type: 'SET_ERROR', payload: 'Season is required.' });
-      return;
-    }
     if (!(currentFormData.meet as Meet)?.id) {
-      dispatch({ type: 'SET_ERROR', payload: 'Meet is required.' });
+      /* ...validation as before... */ dispatch({
+        type: 'SET_ERROR',
+        payload: 'Meet is required.',
+      });
+      return;
+    }
+    if (!(currentFormData.meet as Meet)?.season?.id) {
+      /* ...validation as before... */ dispatch({
+        type: 'SET_ERROR',
+        payload: 'Selected Meet is missing Season information.',
+      });
+      return;
+    }
+    if (!(currentFormData.meet as Meet)?.season?.team?.id) {
+      /* ...validation as before... */ dispatch({
+        type: 'SET_ERROR',
+        payload: 'Selected Meet is missing Team information (via Season).',
+      });
       return;
     }
     if (!(currentFormData.event as Event)?.id) {
-      dispatch({ type: 'SET_ERROR', payload: 'Event is required.' });
-      return;
-    }
-    if (numericResult === null) {
-      dispatch({ type: 'SET_ERROR', payload: 'Result Time is required.' });
-      return;
-    }
-    if (populatedAthletesCount !== requiredAthletes) {
-      dispatch({
+      /* ...validation as before... */ dispatch({
         type: 'SET_ERROR',
-        payload: `Requires exactly ${requiredAthletes} athlete(s) selected. Found ${populatedAthletesCount}.`,
+        payload: 'Event is required.',
+      });
+      return;
+    }
+    if (
+      numericResult === null &&
+      resultTimeString.trim() === '' &&
+      !(currentFormData.dq === true)
+    ) {
+      /* ...validation as before... */ dispatch({
+        type: 'SET_ERROR',
+        payload: 'Result Time is required if not a DQ.',
+      });
+      return;
+    }
+    if (populatedAthletes.length !== requiredAthletes) {
+      /* ...validation as before... */ dispatch({
+        type: 'SET_ERROR',
+        payload: `Requires exactly ${requiredAthletes} athlete(s) selected. Found ${populatedAthletes.length}.`,
       });
       return;
     }
 
     if (error) dispatch({ type: 'SET_ERROR', payload: null });
 
-    // Create a final payload to save, ensuring result is numeric and athletes array is clean
     const finalSaveData: Partial<Result> = {
-      ...currentFormData,
-      result: numericResult,
-      // Ensure athletes array only contains valid, populated athlete objects
-      athletes: ((currentFormData.athletes as Athlete[]) || []).filter(
-        (ath) => ath?.id
-      ),
+      id: currentFormData.id,
+      meet: currentFormData.meet as Meet,
+      event: currentFormData.event as Event,
+      athletes: populatedAthletes,
+      result: numericResult === null ? undefined : numericResult, // CORRECTED for TS2322
+      dq: currentFormData.dq ?? false,
+      isOfficial: currentFormData.isOfficial ?? false,
+      isBenchmark: currentFormData.isBenchmark ?? false,
     };
 
-    // It's better if FormContext's saveForm takes the payload,
-    // or we update context state piece by piece then call saveForm()
-    // For now, assuming updateFormField for result, then saveForm()
-    updateFormField('result', numericResult);
+    updateFormField('result', finalSaveData.result);
     updateFormField('athletes', finalSaveData.athletes);
-    // Ensure other embedded objects are already set correctly
-    // team, season, meet, event should be objects due to their handlers
+    updateFormField('dq', finalSaveData.dq);
+    updateFormField('isOfficial', finalSaveData.isOfficial);
+    updateFormField('isBenchmark', finalSaveData.isBenchmark);
+    // meet & event are already objects in currentFormData
 
     await saveForm();
   }, [
@@ -365,15 +512,17 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
 
   return (
     <div className="form">
+      {/* JSX (ensure team/season dropdowns use selectedTeamIdForFilter/selectedSeasonIdForFilter for their values) */}
+      {/* ... form structure as previously outlined, ensuring value props of Team/Season selects use local filter state ... */}
       <form onSubmit={(e) => e.preventDefault()}>
         <section>
           <p className="form-section-title">Context</p>
           <div className="field">
-            <label htmlFor="team">Team *</label>
+            <label htmlFor="teamFilter">Team *</label>
             <select
-              id="team"
-              name="team"
-              value={(currentFormData?.team as Team | undefined)?.id ?? ''}
+              id="teamFilter"
+              name="teamFilter"
+              value={selectedTeamIdForFilter}
               onChange={handleTeamChange}
               disabled={isDisabled || isLoadingTeams}
               required
@@ -390,16 +539,14 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="season">Season *</label>
+            <label htmlFor="seasonFilter">Season *</label>
             <select
-              id="season"
-              name="season"
-              value={(currentFormData?.season as Season | undefined)?.id ?? ''}
+              id="seasonFilter"
+              name="seasonFilter"
+              value={selectedSeasonIdForFilter}
               onChange={handleSeasonChange}
               disabled={
-                !(currentFormData?.team as Team | undefined)?.id ||
-                isDisabled ||
-                isLoadingSeasons
+                !selectedTeamIdForFilter || isDisabled || isLoadingSeasons
               }
               required
               aria-required="true"
@@ -407,7 +554,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
               <option value="" disabled>
                 {isLoadingSeasons
                   ? 'Loading...'
-                  : !(currentFormData?.team as Team | undefined)?.id
+                  : !selectedTeamIdForFilter
                     ? 'Select Team First'
                     : '-- Select Season --'}
               </option>
@@ -426,9 +573,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
               value={(currentFormData?.meet as Meet | undefined)?.id ?? ''}
               onChange={handleMeetChange}
               disabled={
-                !(currentFormData?.season as Season | undefined)?.id ||
-                isDisabled ||
-                isLoadingMeets
+                !selectedSeasonIdForFilter || isDisabled || isLoadingMeets
               }
               required
               aria-required="true"
@@ -436,15 +581,15 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
               <option value="" disabled>
                 {isLoadingMeets
                   ? 'Loading...'
-                  : !(currentFormData?.season as Season | undefined)?.id
+                  : !selectedSeasonIdForFilter
                     ? 'Select Season First'
                     : '-- Select Meet --'}
               </option>
-              {allMeetsData?.map((meet) => (
+              {availableMeets.map((meet) => (
                 <option key={meet.id} value={meet.id}>
                   {meet.nameShort ?? 'Unknown Meet'} (
                   {meet.date
-                    ? new Date(meet.date).toLocaleDateString()
+                    ? new Date(meet.date + 'T00:00:00').toLocaleDateString()
                     : 'No Date'}
                   )
                 </option>
@@ -500,9 +645,14 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
           </div>
           <div className="athlete-slots-container">
             {Array.from({ length: requiredAthletes }).map((_, index) => {
-              const athleteObject = (
-                getSafeArray(currentFormData?.athletes) as Athlete[]
+              const athleteSlotValue = (
+                getSafeArray(currentFormData?.athletes) as (
+                  | Athlete
+                  | undefined
+                  | null
+                )[]
               )[index];
+              const athleteObject = athleteSlotValue || null;
               const personObject = athleteObject?.person;
               const displayName = personObject?.id
                 ? `${personObject.preferredName || personObject.firstName} ${personObject.lastName}`.trim()
@@ -539,9 +689,9 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
               );
             })}
           </div>
-          {(getSafeArray(currentFormData?.athletes) as Athlete[]).filter(
-            (ath) => ath?.id
-          ).length !== requiredAthletes &&
+          {(
+            getSafeArray(currentFormData?.athletes) as (Athlete | null)[]
+          ).filter((ath) => !!ath?.id).length !== requiredAthletes &&
             mode !== 'view' && (
               <p className="field-hint subtle">
                 Selection required for all athletes.
@@ -561,8 +711,8 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
               value={resultTimeString}
               onChange={handleTimeInputChange}
               readOnly={isDisabled}
-              required
-              aria-required="true"
+              required={!(currentFormData?.dq === true)}
+              aria-required={!(currentFormData?.dq === true)}
             />
           </div>
           <div className="field">
@@ -583,8 +733,8 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
             <label htmlFor="official">Official?</label>
             <select
               id="official"
-              name="official"
-              value={boolToString(currentFormData?.official)}
+              name="isOfficial"
+              value={boolToString(currentFormData?.isOfficial)}
               onChange={handleBooleanSelectChange}
               disabled={isDisabled}
             >
@@ -594,12 +744,11 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="benchmarks">Benchmark?</label>{' '}
-            {/* Changed from Benchmarks? */}
+            <label htmlFor="benchmarks">Benchmark?</label>
             <select
               id="benchmarks"
-              name="benchmarks"
-              value={boolToString(currentFormData?.benchmarks)}
+              name="isBenchmark"
+              value={boolToString(currentFormData?.isBenchmark)}
               onChange={handleBooleanSelectChange}
               disabled={isDisabled}
             >
@@ -614,10 +763,10 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
           <p className="form-section-title">Actions</p>
           {error && <div className="form-message error">{error}</div>}
           <div className="buttons">
-            {/* Buttons as before */}
             {mode === 'view' && selectedItem?.id && (
               <button type="button" onClick={handleEditClick}>
-                Edit
+                {' '}
+                Edit{' '}
               </button>
             )}
             {(mode === 'edit' || mode === 'add') && (
@@ -628,14 +777,16 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
                   disabled={isSaving}
                   className="primary"
                 >
-                  {isSaving ? 'Saving...' : 'Save'}
+                  {' '}
+                  {isSaving ? 'Saving...' : 'Save'}{' '}
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelClick}
                   disabled={isSaving}
                 >
-                  Cancel
+                  {' '}
+                  Cancel{' '}
                 </button>
               </>
             )}
@@ -646,7 +797,8 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
                 disabled={isSaving}
                 className="delete"
               >
-                {isSaving ? 'Deleting...' : 'Delete'}
+                {' '}
+                {isSaving ? 'Deleting...' : 'Delete'}{' '}
               </button>
             )}
           </div>
@@ -656,12 +808,14 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
           <section className="form-timestamps">
             {currentFormData.createdAt && (
               <p className="timestamp-field">
-                Created: {formatTimestamp(currentFormData.createdAt)}
+                {' '}
+                Created: {formatTimestamp(currentFormData.createdAt)}{' '}
               </p>
             )}
             {currentFormData.updatedAt && (
               <p className="timestamp-field">
-                Updated: {formatTimestamp(currentFormData.updatedAt)}
+                {' '}
+                Updated: {formatTimestamp(currentFormData.updatedAt)}{' '}
               </p>
             )}
           </section>
@@ -671,19 +825,30 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
       <AthleteSelectorModal
         isOpen={selectingAthleteSlot !== null}
         onClose={handleCloseAthleteModal}
-        onSelect={handleAthleteSelect} // Expects (athlete: Athlete) => void
-        teamId={(currentFormData?.team as Team | undefined)?.id || null}
-        seasonId={(currentFormData?.season as Season | undefined)?.id || null}
+        onSelect={handleAthleteSelect}
+        teamId={
+          (currentFormData?.meet as Meet | undefined)?.season?.team?.id ||
+          selectedTeamIdForFilter ||
+          null
+        }
+        seasonId={
+          (currentFormData?.meet as Meet | undefined)?.season?.id ||
+          selectedSeasonIdForFilter ||
+          null
+        }
         excludeIds={
           isRelay
-            ? (getSafeArray(currentFormData?.athletes) as Athlete[])
+            ? (
+                getSafeArray(currentFormData?.athletes) as (
+                  | Athlete
+                  | undefined
+                  | null
+                )[]
+              )
                 .map((ath) => ath?.id)
                 .filter(
-                  (id) =>
-                    id &&
-                    (currentFormData?.athletes as Athlete[])[
-                      selectingAthleteSlot ?? -1
-                    ]?.id !== id
+                  (id, idx): id is string =>
+                    !!id && idx !== selectingAthleteSlot
                 )
             : []
         }

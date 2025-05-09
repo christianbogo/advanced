@@ -8,7 +8,7 @@ import {
   QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
-import { Result } from '../../types/data'; // Result type includes all embedded denormalized data
+import { Result } from '../../types/data';
 import { useFilterContext } from '../../filter/FilterContext';
 
 const FIRESTORE_IN_QUERY_LIMIT = 30;
@@ -23,17 +23,16 @@ const fetchResults = async (
 ): Promise<Result[]> => {
   const resultsCollectionRef = collection(db, 'results');
   const queryConstraints: QueryConstraint[] = [
-    orderBy('meet.date', 'desc'), // Sort by meet date (most recent first)
-    orderBy('result', 'asc'), // Then by result time (fastest first)
-    // Requires Firestore index on (meet.date DESC, result ASC)
+    orderBy('meet.date', 'desc'),
+    orderBy('result', 'asc'),
   ];
 
   // Apply server-side 'in' filters if IDs are provided and within limits (checked by 'enabled' in hook)
   if (teamIds.length > 0) {
-    queryConstraints.unshift(where('team.id', 'in', teamIds));
+    queryConstraints.unshift(where('meet.season.team.id', 'in', teamIds)); // CORRECTED
   }
   if (seasonIds.length > 0) {
-    queryConstraints.unshift(where('season.id', 'in', seasonIds));
+    queryConstraints.unshift(where('meet.season.id', 'in', seasonIds)); // CORRECTED
   }
   if (meetIds.length > 0) {
     queryConstraints.unshift(where('meet.id', 'in', meetIds));
@@ -61,7 +60,10 @@ const fetchResults = async (
   if (personIds.length > 0) {
     const personIdSet = new Set(personIds);
     results = results.filter((result) =>
-      result.athletes.some((athlete) => personIdSet.has(athlete.person.id))
+      result.athletes.some((athlete) => {
+        // Add a check for athlete.person to prevent potential errors if an athlete object might not have a person
+        return athlete.person && personIdSet.has(athlete.person.id);
+      })
     );
   }
 
@@ -75,30 +77,34 @@ export function useResults() {
     season: superSelectedSeasonIds,
     meet: superSelectedMeetIds,
     event: superSelectedEventIds,
-    athlete: superSelectedAthleteIds,
-    person: superSelectedPersonIds,
+    athlete: superSelectedAthleteIds, // Used for client-side filtering in fetchResults
+    person: superSelectedPersonIds, // Used for client-side filtering in fetchResults
   } = filterState.superSelected;
 
-  const primaryScopedFilters = [
-    { ids: superSelectedTeamIds },
-    { ids: superSelectedSeasonIds },
-    { ids: superSelectedMeetIds },
-    { ids: superSelectedEventIds },
+  // Filters that determine if a server-side query should even run.
+  // Athlete and Person filters are applied client-side after an initial fetch based on these.
+  const serverQueryFilters = [
+    { ids: superSelectedTeamIds, field: 'meet.season.team.id' }, // For Firestore query
+    { ids: superSelectedSeasonIds, field: 'meet.season.id' }, // For Firestore query
+    { ids: superSelectedMeetIds, field: 'meet.id' },
+    { ids: superSelectedEventIds, field: 'event.id' },
   ];
 
   let queryEnabled = false;
-  const activePrimaryFilters = primaryScopedFilters.filter(
+  const activeServerFilters = serverQueryFilters.filter(
     (f) => f.ids.length > 0
   );
 
-  if (activePrimaryFilters.length > 0) {
-    // Query is enabled if at least one primary filter is active AND
-    // all active primary filters are within Firestore's 'in' query limits.
-    queryEnabled = activePrimaryFilters.every(
+  if (activeServerFilters.length > 0) {
+    // Query is enabled if at least one of these server-filterable categories is active AND
+    // all such active filters are within Firestore's 'in' query limits.
+    queryEnabled = activeServerFilters.every(
       (f) => f.ids.length <= FIRESTORE_IN_QUERY_LIMIT
     );
   }
-  // Athlete/Person filters are applied client-side and do not gate the query if primary filters are valid.
+  // If you want the query to run even if only athlete/person filters are selected (relying on client-side filtering),
+  // you'd adjust the queryEnabled logic. But typically, you want some broader scope (team, season, meet, event)
+  // for the initial fetch.
 
   return useQuery<Result[], Error>({
     queryKey: [
@@ -107,8 +113,8 @@ export function useResults() {
       superSelectedSeasonIds,
       superSelectedMeetIds,
       superSelectedEventIds,
-      superSelectedAthleteIds,
-      superSelectedPersonIds,
+      superSelectedAthleteIds, // Part of key because fetchResults uses it for client filtering
+      superSelectedPersonIds, // Part of key because fetchResults uses it for client filtering
     ],
     queryFn: () =>
       fetchResults(

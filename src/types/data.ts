@@ -63,7 +63,6 @@ export interface Meet {
 export interface Athlete {
   id: string;
 
-  team: Team;
   season: Season;
   person: Person;
 
@@ -131,8 +130,6 @@ export interface Event {
 export interface Result {
   id: string;
 
-  team: Team;
-  season: Season;
   meet: Meet;
   event: Event;
   athletes: Athlete[];
