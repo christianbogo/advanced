@@ -5,7 +5,7 @@ import { useEvents } from './useEvents';
 import { useFilterContext } from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
 import { Event } from '../../types/data';
-import '../../styles/window.css'; // Assuming path is correct
+import '../../styles/window.css';
 
 type NameDisplayType = 'codeOnly' | 'codeShort' | 'codeLong';
 type EndColumnDataType = 'none' | 'resultCount' | 'hs' | 'ms' | 'U14' | 'O15';
@@ -24,12 +24,20 @@ function EventsWindow() {
   } = useFilterContext();
   const { selectItemForForm } = useFormContext();
 
-  const selectedEventIds = filterState.selected.event || [];
-  const superSelectedEventIds = filterState.superSelected.event || [];
+  // Memoize selectedEventIds and superSelectedEventIds
+  const selectedEventIds = useMemo(
+    () => filterState.selected.event || [],
+    [filterState.selected.event]
+  );
+
+  const superSelectedEventIds = useMemo(
+    () => filterState.superSelected.event || [],
+    [filterState.superSelected.event]
+  );
 
   const isAnySelectionActive = useMemo(
     () => selectedEventIds.length > 0 || superSelectedEventIds.length > 0,
-    [selectedEventIds, superSelectedEventIds]
+    [selectedEventIds, superSelectedEventIds] // Now depends on memoized, stable values
   );
 
   const handleNameDisplayChange = (
@@ -71,7 +79,7 @@ function EventsWindow() {
   const renderEventName = (eventItem: Event): string => {
     switch (nameDisplay) {
       case 'codeOnly':
-        return '';
+        return ''; // Assuming code is rendered separately or not at all here
       case 'codeLong':
         return eventItem.nameLong;
       case 'codeShort':
@@ -101,7 +109,7 @@ function EventsWindow() {
   return (
     <div className="window">
       <div className="row">
-        <p>Events ({sortedEvents?.length ?? 0})</p>
+        <p>Events ({isLoading ? '...' : (sortedEvents?.length ?? 0)})</p>
         <div className="buttons">
           <button onClick={handleAddClick}>Add</button>
           <button onClick={handleClearClick} disabled={!isAnySelectionActive}>
@@ -122,7 +130,7 @@ function EventsWindow() {
           <option value="ms">MS Official</option>
           <option value="U14">U14 Official</option>
           <option value="O15">O15 Official</option>
-          <option value="none">None</option> {/* Added None option */}
+          <option value="none">None</option>
         </select>
       </div>
 

@@ -31,8 +31,8 @@ const strokeOptions: string[] = [
   'BK',
   'BR',
   'IM',
-  'Free Relay',
-  'Medley Relay',
+  'FRR',
+  'MR',
   'Other',
 ];
 const booleanOptions = [

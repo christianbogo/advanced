@@ -22,16 +22,7 @@ const getSafeArray = (arr: any[] | undefined | null): any[] =>
   Array.isArray(arr) ? arr : [];
 
 const ResultsForm: React.FC<ResultsFormProps> = ({ mode }) => {
-  const {
-    state,
-    dispatch,
-    updateFormField,
-    selectItemForForm,
-    saveForm,
-    clearForm,
-    revertFormData,
-    deleteItem,
-  } = useFormContext();
+  const { state, dispatch, updateFormField, saveForm } = useFormContext();
   const {
     isSaving,
     error,

@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useFormContext, FormMode } from '../../form/FormContext';
-import { Meet, Team, Season, Event } from '../../types/data';
+import { Meet, Team, Season, Event } from '../../types/data'; // Ensure Meet type no longer has direct 'team'
 import { useTeams } from '../teams/useTeams';
 import { useSeasons } from '../seasons/useSeasons';
 import { useEvents } from '../events/useEvents';
@@ -8,6 +8,8 @@ import { Timestamp } from 'firebase/firestore';
 import '../../styles/form.css';
 
 interface MeetsFormProps {
+  // formData here is the initial data passed to the form, e.g., for editing.
+  // It should conform to the new Meet structure (no direct 'team' field).
   formData: Partial<Meet> | null;
   mode: FormMode;
 }
@@ -38,7 +40,7 @@ const stringToBool = (value: string): boolean | undefined => {
   return undefined;
 };
 
-function MeetsForm({ formData, mode }: MeetsFormProps) {
+function MeetsForm({ formData: initialFormData, mode }: MeetsFormProps) {
   const {
     state,
     dispatch,
@@ -55,19 +57,33 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
   const { data: allSeasonsData, isLoading: isLoadingSeasons } = useSeasons();
   const { data: allEventsData, isLoading: isLoadingEvents } = useEvents();
 
+  // Local state to manage the selected team ID for filtering seasons
+  const [selectedTeamIdForFiltering, setSelectedTeamIdForFiltering] =
+    useState<string>('');
   const [selectedEventToAdd, setSelectedEventToAdd] = useState<string>('');
   const isDisabled = mode === 'view' || mode === null || isSaving;
 
+  useEffect(() => {
+    // Initialize the team filter when formData (for editing/viewing) is available
+    // or reset when switching to 'add' mode.
+    if (mode === 'edit' || mode === 'view') {
+      const initialTeamId = (initialFormData?.season as Season | undefined)
+        ?.team?.id;
+      setSelectedTeamIdForFiltering(initialTeamId ?? '');
+    } else {
+      // For 'add' mode or when form is cleared/reset
+      setSelectedTeamIdForFiltering('');
+    }
+  }, [initialFormData, mode]);
+
   const availableSeasons = useMemo(() => {
-    if (!allSeasonsData || !currentFormData?.team) {
+    if (!allSeasonsData || !selectedTeamIdForFiltering) {
       return [];
     }
-    const currentTeamObj = currentFormData.team as Team | undefined;
-    if (!currentTeamObj?.id) return [];
     return allSeasonsData.filter(
-      (season) => season.team.id === currentTeamObj.id
+      (season) => season.team.id === selectedTeamIdForFiltering
     );
-  }, [allSeasonsData, currentFormData?.team]);
+  }, [allSeasonsData, selectedTeamIdForFiltering]);
 
   const eventMap = useMemo(() => {
     if (!allEventsData) return new Map<string, Event>();
@@ -84,7 +100,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
   const handleTextFieldChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = e.target;
-      updateFormField(name, value);
+      updateFormField(name as keyof Meet, value);
     },
     [updateFormField]
   );
@@ -92,33 +108,20 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
   const handleBooleanSelectChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { name, value } = e.target;
-      updateFormField(name, stringToBool(value));
+      updateFormField(name as keyof Meet, stringToBool(value));
     },
     [updateFormField]
   );
 
   const handleTeamChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedTeamId = event.target.value;
-      const teamObject = teamsData?.find((t) => t.id === selectedTeamId);
-
-      if (teamObject) {
-        updateFormField('team', teamObject);
-        const currentSeasonObject = currentFormData?.season as
-          | Season
-          | undefined;
-        if (
-          currentSeasonObject &&
-          currentSeasonObject.team.id !== teamObject.id
-        ) {
-          updateFormField('season', null);
-        }
-      } else {
-        updateFormField('team', null);
-        updateFormField('season', null);
-      }
+      const newSelectedTeamId = event.target.value;
+      setSelectedTeamIdForFiltering(newSelectedTeamId);
+      // When team selection changes, clear the currently selected season
+      // as the list of available seasons will update.
+      updateFormField('season', null);
     },
-    [teamsData, updateFormField, currentFormData?.season]
+    [updateFormField] // setSelectedTeamIdForFiltering is a setState, not needed in deps here
   );
 
   const handleSeasonChange = useCallback(
@@ -179,11 +182,22 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
   const handleCancelClick = useCallback(() => {
     if (selectedItem?.mode === 'add') {
       clearForm();
+      setSelectedTeamIdForFiltering(''); // Reset team filter on cancel add
     } else if (selectedItem?.type === 'meet' && selectedItem?.id) {
       revertFormData();
+      const revertedSeason = state.originalFormData?.season as
+        | Season
+        | undefined;
+      setSelectedTeamIdForFiltering(revertedSeason?.team?.id ?? '');
       selectItemForForm(selectedItem.type, selectedItem.id, 'view');
     }
-  }, [selectedItem, clearForm, revertFormData, selectItemForForm]);
+  }, [
+    selectedItem,
+    clearForm,
+    revertFormData,
+    selectItemForForm,
+    state.originalFormData,
+  ]);
 
   const handleDeleteClick = useCallback(async () => {
     if (isSaving) return;
@@ -193,14 +207,12 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
   const handleSaveClick = useCallback(async () => {
     if (isSaving || !currentFormData) return;
 
-    const teamObject = currentFormData.team as Team | undefined;
-    const seasonObject = currentFormData.season as Season | undefined;
+    const currentSeason = currentFormData.season as Season | undefined;
 
     if (
       !currentFormData.nameShort ||
       !currentFormData.nameLong ||
-      !teamObject?.id ||
-      !seasonObject?.id ||
+      !currentSeason?.id || // Validating season.id implies team is also set via season.team
       !currentFormData.date
     ) {
       dispatch({
@@ -249,12 +261,12 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
             <label htmlFor="team">Team</label>
             <select
               id="team"
-              name="team"
-              value={(currentFormData?.team as Team | undefined)?.id ?? ''}
+              name="team" // Name attribute can remain for semantics, but doesn't map to Meet field
+              value={selectedTeamIdForFiltering}
               onChange={handleTeamChange}
               disabled={isDisabled || isLoadingTeams}
               required
-              aria-required="true"
+              aria-required="true" // User must pick a team to enable season selection
             >
               <option value="" disabled>
                 {isLoadingTeams ? 'Loading teams...' : 'Select a Team'}
@@ -274,9 +286,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               value={(currentFormData?.season as Season | undefined)?.id ?? ''}
               onChange={handleSeasonChange}
               disabled={
-                !(currentFormData?.team as Team | undefined)?.id ||
-                isDisabled ||
-                isLoadingSeasons
+                !selectedTeamIdForFiltering || isDisabled || isLoadingSeasons
               }
               required
               aria-required="true"
@@ -284,7 +294,7 @@ function MeetsForm({ formData, mode }: MeetsFormProps) {
               <option value="" disabled>
                 {isLoadingSeasons
                   ? 'Loading seasons...'
-                  : (currentFormData?.team as Team | undefined)?.id
+                  : selectedTeamIdForFiltering
                     ? 'Select a Season'
                     : 'Select Team First'}
               </option>

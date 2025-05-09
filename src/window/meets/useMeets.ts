@@ -1,3 +1,5 @@
+// src/window/meets/useMeets.ts
+
 import { useQuery } from '@tanstack/react-query';
 import {
   collection,
@@ -8,7 +10,7 @@ import {
   QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
-import { Meet } from '../../types/data'; // Meet type itself will include embedded Season and Team types
+import { Meet } from '../../types/data';
 import { useFilterContext } from '../../filter/FilterContext';
 
 const FIRESTORE_IN_QUERY_LIMIT = 30;
@@ -25,7 +27,10 @@ const fetchMeets = async (
       where('season.id', 'in', superSelectedSeasonIds)
     );
   } else if (superSelectedTeamIds.length > 0) {
-    meetsQueryConstraints.unshift(where('team.id', 'in', superSelectedTeamIds));
+    // Updated to query via season.team.id
+    meetsQueryConstraints.unshift(
+      where('season.team.id', 'in', superSelectedTeamIds)
+    );
   }
 
   const meetsQueryInstance = query(

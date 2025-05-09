@@ -1,12 +1,12 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react'; // Added useMemo
 import { useFormContext, FormMode } from '../../form/FormContext';
 import { Season, Team } from '../../types/data';
-import { useTeams } from '../teams/useTeams'; // Assuming this path is correct
+import { useTeams } from '../teams/useTeams';
 import { Timestamp } from 'firebase/firestore';
 import '../../styles/form.css';
 
 interface SeasonsFormProps {
-  formData: Partial<Season> | null;
+  formData: Partial<Season> | null; // Initial data for the form
   mode: FormMode;
 }
 
@@ -24,7 +24,8 @@ const formatTimestamp = (timestamp: Timestamp | undefined | null): string => {
   return 'N/A';
 };
 
-function SeasonsForm({ formData, mode }: SeasonsFormProps) {
+function SeasonsForm({ formData: initialFormData, mode }: SeasonsFormProps) {
+  // Renamed prop to avoid confusion
   const {
     state,
     updateFormField,
@@ -34,7 +35,8 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
     revertFormData,
     deleteItem,
   } = useFormContext();
-  const { selectedItem, isSaving, error } = state;
+  // Use currentFormData from context for live form values
+  const { selectedItem, isSaving, error, formData: currentFormData } = state;
 
   const { data: teams, isLoading: isLoadingTeams } = useTeams();
   const isDisabled = mode === 'view' || mode === null || isSaving;
@@ -61,7 +63,12 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
       >
     ) => {
       const { name, value } = event.target;
-      updateFormField(name, value);
+      // Ensure 'year' is treated as string, even if numeric, matching Season type
+      if (name === 'year') {
+        updateFormField(name as keyof Season, String(value));
+      } else {
+        updateFormField(name as keyof Season, value);
+      }
     },
     [updateFormField]
   );
@@ -83,13 +90,13 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
     if (selectedItem?.mode === 'add') {
       clearForm();
     } else if (selectedItem?.type && selectedItem?.id) {
-      revertFormData();
+      revertFormData(); // This should repopulate currentFormData via context
       selectItemForForm(selectedItem.type, selectedItem.id, 'view');
     }
   };
 
   const handleSaveClick = async () => {
-    if (isSaving) return;
+    if (isSaving || !areAllFieldsFilled) return; // Also check areAllFieldsFilled here as a safeguard
     await saveForm();
   };
 
@@ -98,12 +105,36 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
     await deleteItem();
   };
 
-  const quarterOptions: Season['quarter'][] = [
+  const quarterOptions: Array<Season['quarter']> = [
+    // Explicitly type array elements
     'Spring',
     'Summer',
     'Fall',
     'Winter',
   ];
+
+  const areAllFieldsFilled = useMemo(() => {
+    if (!currentFormData) return false;
+
+    const { team, quarter, year, startDate, endDate, dataComplete } =
+      currentFormData;
+
+    const isTeamSelected = !!team?.id;
+    const isQuarterSelected = !!quarter && quarter.trim() !== '';
+    const isYearEntered = !!year && year.trim() !== ''; // Year is a string
+    const isStartDateEntered = !!startDate;
+    const isEndDateEntered = !!endDate;
+    const isDataCompleteSet = typeof dataComplete === 'boolean';
+
+    return (
+      isTeamSelected &&
+      isQuarterSelected &&
+      isYearEntered &&
+      isStartDateEntered &&
+      isEndDateEntered &&
+      isDataCompleteSet
+    );
+  }, [currentFormData]);
 
   return (
     <div className="form">
@@ -115,7 +146,7 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
             <select
               id="team"
               name="team"
-              value={formData?.team?.id ?? ''}
+              value={currentFormData?.team?.id ?? ''}
               onChange={handleTeamChange}
               disabled={isDisabled || isLoadingTeams}
               required
@@ -136,18 +167,21 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
             <select
               id="quarter"
               name="quarter"
-              value={formData?.quarter ?? ''}
+              value={currentFormData?.quarter ?? ''}
               onChange={handleGenericFieldChange}
               disabled={isDisabled}
               required
               aria-required="true"
             >
               <option value="" disabled></option>
-              {quarterOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
+              {quarterOptions.map(
+                (name) =>
+                  name && (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  )
+              )}
             </select>
           </div>
           <div className="field">
@@ -157,7 +191,7 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
               id="year"
               name="year"
               placeholder="YYYY or YYYY-YYYY"
-              value={formData?.year ?? ''}
+              value={currentFormData?.year ?? ''}
               onChange={handleGenericFieldChange}
               readOnly={isDisabled}
               required
@@ -174,7 +208,7 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
               type="date"
               id="startDate"
               name="startDate"
-              value={formData?.startDate ?? ''}
+              value={currentFormData?.startDate ?? ''}
               onChange={handleGenericFieldChange}
               readOnly={isDisabled}
               required
@@ -187,7 +221,7 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
               type="date"
               id="endDate"
               name="endDate"
-              value={formData?.endDate ?? ''}
+              value={currentFormData?.endDate ?? ''}
               onChange={handleGenericFieldChange}
               readOnly={isDisabled}
               required
@@ -200,12 +234,14 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
               id="dataComplete"
               name="dataComplete"
               value={
-                formData?.dataComplete === undefined
+                currentFormData?.dataComplete === undefined // Bind to currentFormData
                   ? ''
-                  : String(formData.dataComplete)
+                  : String(currentFormData.dataComplete)
               }
               onChange={handleDataCompleteChange}
               disabled={isDisabled}
+              // Not 'required' but logic implies a choice must be made.
+              // areAllFieldsFilled ensures it's set.
             >
               <option value="" disabled></option>
               <option value="true">Yes</option>
@@ -228,7 +264,7 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
                 <button
                   type="button"
                   onClick={handleSaveClick}
-                  disabled={isSaving}
+                  disabled={isSaving || !areAllFieldsFilled} // Updated disabled state
                   className="primary"
                 >
                   {isSaving ? 'Saving...' : 'Save'}
@@ -255,16 +291,16 @@ function SeasonsForm({ formData, mode }: SeasonsFormProps) {
           </div>
         </section>
 
-        {(formData?.createdAt || formData?.updatedAt) && (
+        {(currentFormData?.createdAt || currentFormData?.updatedAt) && ( // Check currentFormData
           <section className="form-timestamps">
-            {formData.createdAt && (
+            {currentFormData?.createdAt && ( // Check currentFormData
               <p className="timestamp-field">
-                Created: {formatTimestamp(formData.createdAt)}
+                Created: {formatTimestamp(currentFormData.createdAt)}
               </p>
             )}
-            {formData.updatedAt && (
+            {currentFormData?.updatedAt && ( // Check currentFormData
               <p className="timestamp-field">
-                Updated: {formatTimestamp(formData.updatedAt)}
+                Updated: {formatTimestamp(currentFormData.updatedAt)}
               </p>
             )}
           </section>

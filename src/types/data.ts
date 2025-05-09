@@ -40,15 +40,14 @@ export interface Season {
 export interface Meet {
   id: string;
 
-  team: Team;
   season: Season;
+  eventOrder: Event[];
 
   nameShort: string;
   nameLong: string;
   date: string;
   location: string;
   address: string;
-  eventOrder: string[];
   official: boolean;
   benchmarks: boolean;
   dataComplete: boolean;

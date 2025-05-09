@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useMeets } from './useMeets';
-import { Meet } from '../../types/data'; // Import the Meet type
+import { Meet } from '../../types/data';
 import { useFilterContext } from '../../filter/FilterContext';
 import { useFormContext } from '../../form/FormContext';
 import { dateDisplay } from '../../utils/date';
@@ -23,7 +23,7 @@ function MeetsWindow() {
   const [endColumnData, setEndColumnData] =
     useState<MeetEndColumnDataType>('date');
 
-  const { data: meets, isLoading, isError, error } = useMeets();
+  const { data: meetsDataFromHook, isLoading, isError, error } = useMeets();
 
   const {
     state: filterState,
@@ -32,37 +32,29 @@ function MeetsWindow() {
   } = useFilterContext();
   const { selectItemForForm } = useFormContext();
 
-  const selectedTeamIds = filterState.selected.team;
-  const superSelectedTeamIds = filterState.superSelected.team;
-  const selectedSeasonIds = filterState.selected.season;
-  const superSelectedSeasonIds = filterState.superSelected.season;
-  const selectedMeetIds = filterState.selected.meet;
-  const superSelectedMeetIds = filterState.superSelected.meet;
+  const { selected: selectedIds, superSelected: superSelectedIds } =
+    filterState;
 
-  const hasAnyTeamSelected = useMemo(
-    () => selectedTeamIds.length > 0,
-    [selectedTeamIds]
-  );
-  const hasAnyTeamSuperSelected = useMemo(
-    () => superSelectedTeamIds.length > 0,
-    [superSelectedTeamIds]
-  );
-  const hasAnySeasonSelected = useMemo(
-    () => selectedSeasonIds.length > 0,
-    [selectedSeasonIds]
-  );
-  const hasAnySeasonSuperSelected = useMemo(
-    () => superSelectedSeasonIds.length > 0,
-    [superSelectedSeasonIds]
-  );
-  const isAnyMeetSelectionActive = useMemo(
-    () => selectedMeetIds.length > 0 || superSelectedMeetIds.length > 0,
-    [selectedMeetIds, superSelectedMeetIds]
-  );
+  const selectedTeamIds = selectedIds.team;
+  const superSelectedTeamIds = superSelectedIds.team;
+  const selectedSeasonIds = selectedIds.season;
+  const superSelectedSeasonIds = superSelectedIds.season;
+  const selectedMeetIds = selectedIds.meet;
+  const superSelectedMeetIds = superSelectedIds.meet;
+
+  const hasSelectedTeams = selectedTeamIds.length > 0;
+  const hasSuperSelectedTeams = superSelectedTeamIds.length > 0;
+  const hasSelectedSeasons = selectedSeasonIds.length > 0;
+  const hasSuperSelectedSeasons = superSelectedSeasonIds.length > 0;
+  const hasSelectedMeets = selectedMeetIds.length > 0;
+  const hasSuperSelectedMeets = superSelectedMeetIds.length > 0;
+
+  const isAnyMeetSelectionForClearButtonActive =
+    hasSelectedMeets || hasSuperSelectedMeets;
 
   const sortedMeets = useMemo(() => {
-    if (!meets) return [];
-    const meetsToSort: Meet[] = [...meets];
+    if (!meetsDataFromHook) return [];
+    const meetsToSort: Meet[] = [...meetsDataFromHook];
     meetsToSort.sort((a: Meet, b: Meet) => {
       let valA: string | number | null | undefined;
       let valB: string | number | null | undefined;
@@ -103,18 +95,28 @@ function MeetsWindow() {
         else primarySortResult = String(valB).localeCompare(String(valA));
       }
       if (primarySortResult === 0) {
-        return (b.date ?? '').localeCompare(a.date ?? ''); // Secondary sort by date
+        return (b.date ?? '').localeCompare(a.date ?? '');
       }
       return primarySortResult;
     });
     return meetsToSort;
-  }, [meets, endColumnData]);
+  }, [meetsDataFromHook, endColumnData]);
+
+  const meetsToDisplay = useMemo(() => {
+    if (hasSuperSelectedMeets) {
+      return sortedMeets.filter((meet) =>
+        superSelectedMeetIds.includes(meet.id)
+      );
+    }
+    return sortedMeets;
+  }, [sortedMeets, superSelectedMeetIds, hasSuperSelectedMeets]);
 
   const handleNameDisplayChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
     setNameDisplay(event.target.value as MeetNameDisplayType);
   };
+
   const handleEndColumnChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -144,6 +146,7 @@ function MeetsWindow() {
   const handleAddClick = () => {
     selectItemForForm('meet', null, 'add');
   };
+
   const handleClearClick = () => {
     clearAllByType('meet');
   };
@@ -164,7 +167,7 @@ function MeetsWindow() {
   };
 
   const renderNameColumn = (meet: Meet): React.ReactNode => {
-    const teamCode = meet.team?.code ?? 'N/A';
+    const teamCode = meet.season?.team?.code ?? 'N/A';
     const meetShortName = meet.nameShort ?? 'Unnamed Meet';
     const meetLongName = meet.nameLong ?? 'Unnamed Meet';
     const seasonQuarter = meet.season?.quarter ?? '';
@@ -200,12 +203,12 @@ function MeetsWindow() {
   return (
     <div className="window">
       <div className="row">
-        <p>Meets ({isLoading ? '...' : sortedMeets.length})</p>
+        <p>Meets ({isLoading ? '...' : meetsToDisplay.length})</p>
         <div className="buttons">
           <button onClick={handleAddClick}>Add</button>
           <button
             onClick={handleClearClick}
-            disabled={!isAnyMeetSelectionActive}
+            disabled={!isAnyMeetSelectionForClearButtonActive}
           >
             Clear
           </button>
@@ -236,39 +239,66 @@ function MeetsWindow() {
 
         {!isLoading &&
           !isError &&
-          sortedMeets.map((meet: Meet, index: number) => {
+          meetsToDisplay.map((meet: Meet, index: number) => {
+            const isCurrentMeetSuperSelected = superSelectedMeetIds.includes(
+              meet.id
+            );
+            const isCurrentMeetSelected = selectedMeetIds.includes(meet.id);
+
+            let itemClasses = ['item'];
             let isFaded = false;
             let isClickable = true;
-            const shouldFadeBySeason =
-              hasAnySeasonSelected && !hasAnySeasonSuperSelected;
-            const shouldFadeByTeam =
-              hasAnyTeamSelected &&
-              !hasAnyTeamSuperSelected &&
-              !shouldFadeBySeason &&
-              !hasAnySeasonSuperSelected;
 
-            if (shouldFadeBySeason) {
-              if (!meet.season || !selectedSeasonIds.includes(meet.season.id)) {
-                isFaded = true;
-                isClickable = false;
-              }
-            } else if (shouldFadeByTeam) {
-              if (!meet.team || !selectedTeamIds.includes(meet.team.id)) {
-                isFaded = true;
-                isClickable = false;
-              }
-            }
-
-            const isMeetSelected = selectedMeetIds.includes(meet.id);
-            const isMeetSuperSelected = superSelectedMeetIds.includes(meet.id);
-
-            let itemClasses: string[] = ['item'];
-            if (isMeetSuperSelected) {
+            if (isCurrentMeetSuperSelected) {
               itemClasses.push('super', 'selected');
-            } else if (isMeetSelected) {
+            } else if (isCurrentMeetSelected) {
               itemClasses.push('selected');
+            } else {
+              // Not selected or super-selected itself.
+              // Apply fading rules based on other selections.
+              if (hasSuperSelectedMeets) {
+                // This case should ideally not be reached if the meet is not super-selected,
+                // due to the `meetsToDisplay` filter. Included for logical completeness / safety.
+                // If somehow a non-super-selected meet is here when `hasSuperSelectedMeets` is true,
+                // it implies it shouldn't be shown or interacted with.
+                isFaded = true; // Should have been filtered out by meetsToDisplay
+                isClickable = false;
+              } else if (hasSelectedMeets) {
+                // Rule: "If one or more meet is selected, fade any meet not selected."
+                isFaded = true;
+                isClickable = false;
+              } else {
+                // No meet selections (super or regular). Check team/season selections for fading.
+                // Rule: "If no team or season is selected, all Meets should not be faded." (isFaded remains false by default)
+                const applySeasonSelectionFading =
+                  hasSelectedSeasons && !hasSuperSelectedSeasons;
+                const applyTeamSelectionFading =
+                  hasSelectedTeams &&
+                  !hasSuperSelectedTeams &&
+                  !hasSelectedSeasons && // Only if no season selection is active
+                  !hasSuperSelectedSeasons;
+
+                if (applySeasonSelectionFading) {
+                  if (
+                    !meet.season ||
+                    !selectedSeasonIds.includes(meet.season.id)
+                  ) {
+                    isFaded = true;
+                    isClickable = false;
+                  }
+                } else if (applyTeamSelectionFading) {
+                  if (
+                    !meet.season?.team ||
+                    !selectedTeamIds.includes(meet.season.team.id)
+                  ) {
+                    isFaded = true;
+                    isClickable = false;
+                  }
+                }
+              }
             }
-            if (isFaded && !isMeetSelected && !isMeetSuperSelected) {
+
+            if (isFaded) {
               itemClasses.push('faded');
             }
 
@@ -305,10 +335,12 @@ function MeetsWindow() {
             );
           })}
 
-        {!isLoading && !isError && sortedMeets.length === 0 && (
+        {!isLoading && !isError && meetsToDisplay.length === 0 && (
           <div className="empty-message">
             No meets found for the current filter.
-            {(hasAnySeasonSuperSelected || hasAnyTeamSuperSelected) &&
+            {(hasSuperSelectedSeasons ||
+              hasSuperSelectedTeams ||
+              hasSuperSelectedMeets) &&
               ' (Super-selection active)'}
           </div>
         )}

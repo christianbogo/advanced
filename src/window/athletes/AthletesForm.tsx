@@ -99,6 +99,7 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     mode,
     filterState.superSelected.season,
@@ -233,7 +234,6 @@ function AthletesForm({ formData, mode }: AthletesFormProps) {
                       ? 'Change selected person'
                       : 'Select a person'
                   }
-                  aria-required="true" // Indicate selection is required
                 >
                   {currentFormData?.person ? 'Change' : 'Select'}
                 </button>

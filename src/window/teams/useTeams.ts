@@ -1,11 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  collection,
-  query,
-  getDocs,
-  orderBy,
-  Timestamp,
-} from 'firebase/firestore';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 import { Team } from '../../types/data';
 
